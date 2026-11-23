@@ -1,4 +1,4 @@
-const CACHE_NAME = "emnity-social-shell-v3";
+const CACHE_NAME = "emnity-social-shell-v4";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -79,12 +79,13 @@ self.addEventListener("push", event => {
     const body = typeof payload.body === "string" ? payload.body.slice(0, 160) : "You have a new notification.";
     const url = typeof payload.url === "string" && payload.url.startsWith("/") ? payload.url : "/";
     const isCall = payload.type === "call";
+    const isDm = payload.type === "dm";
     await self.registration.showNotification(title, {
       body,
       icon: "/icons/emnity.svg",
       badge: "/icons/emnity.svg",
-      tag: isCall ? "emnity-incoming-call" : undefined,
-      renotify: isCall,
+      tag: isCall ? "emnity-incoming-call" : (isDm ? `emnity-dm-${String(payload.url || "").slice(0, 100)}` : undefined),
+      renotify: isCall || isDm,
       data: { url, type: payload.type || "message" }
     });
   })());
