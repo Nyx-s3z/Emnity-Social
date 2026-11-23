@@ -400,15 +400,20 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
 
 
-/* Keep Settings at its normal size; scroll the category tabs horizontally. */
+/* Keep Settings at its normal size; make the category strip a real horizontal scroller. */
 .settings-tabs{
+  display:flex;
+  flex-flow:row nowrap;
+  width:100%;
   max-width:100%;
-  overflow-x:auto;
+  min-width:0;
+  box-sizing:border-box;
+  overflow-x:scroll;
   overflow-y:hidden;
-  flex-wrap:nowrap;
-  white-space:nowrap;
+  overscroll-behavior-x:contain;
   -webkit-overflow-scrolling:touch;
   scrollbar-width:thin;
+  white-space:nowrap;
 }
 .settings-tabs button{
   flex:0 0 auto;
