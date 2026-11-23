@@ -441,3 +441,7 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .friend-remove-button{border:1px solid var(--line);border-radius:8px;background:var(--panel-3);color:var(--muted);padding:7px 10px;font-size:10px;font-weight:800}
 .friends-empty{padding:36px 16px;text-align:center;color:var(--muted);font-size:12px}
 @media(max-width:600px){.friends-view{width:calc(100% - 24px);margin:16px auto;padding:16px}.friends-heading{align-items:flex-start}.friends-add-form{flex-direction:column}.friends-add-form button{width:100%}.friend-row{align-items:flex-start;flex-wrap:wrap}.friend-actions{width:100%;justify-content:flex-end}.breadcrumb{gap:6px}.friends-open-button{padding:6px 8px;font-size:10px}}
+
+/* Deafen control follows the existing voice call button styling. */
+.call-controls #deafen-button,.mini-call-panel #mini-deafen-button{background:#383a40;color:#f2f3f5;border:1px solid #4a4d55}
+.call-controls #deafen-button[aria-pressed="true"],.mini-call-panel #mini-deafen-button[aria-pressed="true"]{background:#6b3038;border-color:#a94a55;color:#fff}
