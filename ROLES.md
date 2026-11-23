@@ -4,7 +4,7 @@
 
 Every server creator is automatically its **Owner**. The Owner is the only person who can assign or remove server moderator roles. The Owner role cannot be granted manually or removed from the original owner. The Owner can manage member roles in Settings → Server roles.
 
-In a server text channel, use:
+Open the gear icon beside your profile, choose **Server roles**, select the server, and use the role dropdown beside each member. You can also use the commands below in a server text channel:
 
 - `/role @username Sr. Mod`
 - `/role @username Jr. Mod`
@@ -59,4 +59,4 @@ When someone types in a channel or direct message, other participants see a live
 
 ## Settings
 
-Open the gear icon beside your profile to access Settings. My profile lets you change your display name and upload or remove a profile picture. Server roles lets the server Owner or a site administrator manage each member's server role. Site roles lets the Emnity account or another configured site administrator manage site-wide roles. The server Owner leaving permanently deletes that server and removes all memberships; this action cannot be undone.
+Open the gear icon beside your profile to access Settings. My profile lets you change your display name and upload or remove a profile picture. Server roles lets the server Owner or a site administrator manage each member's server role and leave the server. Site roles lets the Emnity account or another configured site administrator manage site-wide roles. If the Owner leaves, the server is permanently deleted and all memberships are removed; this action cannot be undone.
