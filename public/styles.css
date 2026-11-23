@@ -247,3 +247,8 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .mini-call-panel button:disabled{opacity:.45;cursor:not-allowed;}
 #mini-expand-button{min-width:32px;font-size:16px;padding:5px;}
 @media(max-width:600px){.call-dock.call-collapsed{right:10px;bottom:10px;width:calc(100vw - 20px)}.mini-call-panel{gap:5px;padding:8px}.mini-call-panel button{padding:7px 6px;font-size:9px}.mini-call-copy{min-width:55px}}
+
+/* Site-wide announcement popups */
+.site-announcement-dialog{width:min(92vw,520px);padding:30px;border-radius:20px;text-align:left}.announcement-mark{display:grid;place-items:center;width:42px;height:42px;margin-bottom:18px;border-radius:13px;background:var(--accent-soft);color:var(--accent);font-size:23px}.site-announcement-dialog h2{margin:8px 0 12px;font-size:24px;letter-spacing:-.03em}.site-announcement-popup-body{margin:0 0 24px;color:var(--muted);font-size:14px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}.site-announcement-dialog .eyebrow{margin:0;color:var(--accent);font-size:9px;font-weight:800;letter-spacing:.16em}
+/* @everyone messages stand out across the full message row */
+.message-everyone{margin:7px 8px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line));border-left:4px solid var(--accent);border-radius:11px;background:var(--accent-soft);box-shadow:0 4px 16px rgba(0,0,0,.08)}.message-everyone .message-body{font-weight:600}.message-everyone .message-head strong{color:var(--accent)}
