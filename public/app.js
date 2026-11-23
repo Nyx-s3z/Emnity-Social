@@ -87,7 +87,7 @@ $("logout-button").onclick=async()=>{try{await api("/api/logout",{method:"POST",
 $("theme-toggle").onclick=()=>theme(document.documentElement.dataset.theme==="dark"?"light":"dark");
 $("profile-button").onclick=()=>openSettings();$("close-settings").onclick=()=>$("profile-dialog").close();
 document.querySelectorAll("[data-settings-tab]").forEach(btn=>btn.onclick=()=>switchSettingsTab(btn.dataset.settingsTab));
-function switchSettingsTab(tab){if(tab==="announcements"&&!canPostSiteAnnouncements())tab="personal";document.querySelectorAll("[data-settings-tab]").forEach(b=>b.classList.toggle("active",b.dataset.settingsTab===tab));["personal","server","site","moderation","terms","announcements"].forEach(k=>$("settings-"+k).classList.toggle("hidden",k!==tab));if(tab==="server")loadSettingsServers();if(tab==="site"){ $("site-role-username").focus();api("/api/site-roles").then(()=>msg($("site-role-message"),"You can manage site-wide roles.",true)).catch(e=>msg($("site-role-message"),e.message))}}
+function switchSettingsTab(tab){if(tab==="announcements"&&!canPostSiteAnnouncements())tab="personal";document.querySelectorAll("[data-settings-tab]").forEach(b=>b.classList.toggle("active",b.dataset.settingsTab===tab));["personal","server","site","moderation","terms","announcements"].forEach(k=>$("settings-"+k).classList.toggle("hidden",k!==tab));if(tab==="server")loadSettingsServers();if(tab==="moderation")loadSiteModeration();if(tab==="site"){ $("site-role-username").focus();api("/api/site-roles").then(()=>msg($("site-role-message"),"You can manage site-wide roles.",true)).catch(e=>msg($("site-role-message"),e.message))}}
 async function openSettings(){ $("site-announcements-tab").classList.toggle("hidden",!canPostSiteAnnouncements());switchSettingsTab("personal");$("profile-dialog").showModal();loadSettingsServers()}
 let pendingAvatarData=undefined;
 $("pfp-file").onchange=async()=>{const file=$("pfp-file").files[0];if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)){msg($("profile-message"),"Choose a PNG, JPG, or WebP image.");return}try{const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=256;canvas.height=256;const ctx=canvas.getContext("2d");const scale=Math.max(256/img.width,256/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(256-w)/2,(256-h)/2,w,h);resolve(canvas.toDataURL("image/jpeg",.78))};img.onerror=reject;img.src=reader.result};reader.onerror=reject;reader.readAsDataURL(file)});pendingAvatarData=data;setAvatar($("pfp-preview"),data,user.displayName||user.username);msg($("profile-message"),"Picture ready. Save personal settings to apply.",true)}catch{msg($("profile-message"),"Could not read that image.")}};
@@ -115,6 +115,43 @@ function canBanTargetServerRole(targetRole){const actor=String(currentServerRole
 function appendModerationActions(parent,username,targetSiteRole,targetServerRole){const siteScope=canUseSiteModeration(),scope=siteScope?"site":"server",serverId=activeServer?.id,siteRole=normalizeModRole(currentSiteRole()),serverRole=normalizeModRole(currentServerRole()),senior=siteScope?["sr. mod","dev"].includes(siteRole):true;const canBan=siteScope?canBanTargetSiteRole(targetSiteRole):((String(activeServer?.owner_id)===String(user?.id)||serverRole==="sr. mod")&&(targetSiteRole?canBanTargetSiteRole(targetSiteRole):canBanTargetServerRole(targetServerRole)));const canUnban=siteScope?["jr. mod","sr. mod","dev"].includes(siteRole):String(activeServer?.owner_id)===String(user?.id)||serverRole==="sr. mod";const canTimeout=siteScope||String(activeServer?.owner_id)===String(user?.id)||["mod","jr. mod","sr. mod"].includes(serverRole);const wrap=document.createElement("span");wrap.className="inline-mod-actions";if(canBan){const ban=document.createElement("button");ban.type="button";ban.className="member-mod-action";ban.textContent="Ban";ban.title="Ban @"+username;ban.onclick=()=>runModerationAction("ban",username,scope,serverId,senior);wrap.append(ban)}if(canUnban){const unban=document.createElement("button");unban.type="button";unban.className="member-mod-action";unban.textContent="Unban";unban.title="Remove ban from @"+username;unban.onclick=()=>runModerationAction("unban",username,scope,serverId,senior);wrap.append(unban)}if(canTimeout){const timeout=document.createElement("button");timeout.type="button";timeout.className="member-mod-action";timeout.textContent="10m";timeout.title="10-minute timeout for @"+username;timeout.onclick=()=>runModerationAction("timeout",username,scope,serverId);wrap.append(timeout)}parent.append(wrap)}
 $("mod-view-toggle").onclick=()=>{modViewEnabled=!modViewEnabled;updateModViewToggle();renderMembers(activeMembers);if(activeChannel)loadMessages(true)};
 async function runModerationAction(action,username,scope,serverId,senior=false){let body={username,scope};if(scope==="server")body.serverId=serverId;if(action==="ban"){let choice=prompt(senior?"Ban duration in days (1, 3, 7, 30, 90), or enter 0 for permanent:":"Ban duration in days (1 or 7):",senior?"7":"1");if(choice===null)return;choice=choice.trim();if(choice==="0"){if(!senior)return showToast("Your role cannot issue permanent bans.");body.permanent=true}else{body.durationDays=Number(choice);if(!Number.isInteger(body.durationDays)||body.durationDays<1||(!senior&&![1,7].includes(body.durationDays))||(senior&&body.durationDays>3650))return showToast("Enter an allowed number of days.")}body.reason=prompt("Reason (optional):","")||""}if(!confirm(action==="ban"?"Apply this "+(body.permanent?"permanent":body.durationDays+" day")+" ban to @"+username+"?":action==="unban"?"Remove the ban for @"+username+"?":"Apply a 10-minute timeout to @"+username+"?"))return;try{await api("/api/moderation/"+action,{method:"POST",body:JSON.stringify(body)});showToast(action==="ban"?"Ban applied.":action==="unban"?"Ban removed.":"10-minute timeout applied.","success");if(activeServer)await refreshServer();if(activeChannel)await loadMessages(true)}catch(e){showToast(e.message)}}
+
+const siteModerationCache={users:[],permissions:null};
+function isSiteDev(){return normalizeModRole(currentSiteRole())==="dev"}
+async function loadSiteModeration(){
+ const panel=$("site-account-moderation");if(!panel)return;
+ panel.classList.toggle("hidden",!isSiteDev());
+ if(!isSiteDev())return;
+ $("site-account-list").replaceChildren(Object.assign(document.createElement("p"),{className:"muted",textContent:"Loading accounts…"}));
+ try{
+  const data=await api("/api/moderation?scope=site");
+  siteModerationCache.users=data.users||[];siteModerationCache.permissions=data.permissions||{};
+  renderSiteModerationAccounts();
+ }catch(e){$("site-account-list").textContent=e.message;msg($("site-account-message"),e.message)}
+}
+function renderSiteModerationAccounts(){
+ const list=$("site-account-list"),query=String($("site-account-search").value||"").trim().toLowerCase();
+ const users=siteModerationCache.users.filter(u=>String(u.username||"").toLowerCase().includes(query)||String(u.display_name||"").toLowerCase().includes(query));
+ $("site-account-count").textContent=users.length+" of "+siteModerationCache.users.length+" accounts";
+ list.replaceChildren();
+ if(!users.length){const empty=document.createElement("p");empty.className="muted";empty.textContent=query?"No accounts match that search.":"No accounts have been registered yet.";list.append(empty);return}
+ for(const account of users){
+  const row=document.createElement("article");row.className="site-account-row";
+  const identity=document.createElement("div");identity.className="site-account-identity";
+  const name=document.createElement("strong");name.textContent=account.display_name||account.username;
+  const handle=document.createElement("span");handle.textContent="@"+account.username;
+  const meta=document.createElement("small");const created=account.created_at?new Date(account.created_at).toLocaleDateString():"Date unavailable";meta.textContent=(account.site_role||"Member")+" · Joined "+created+(account.ban_id?" · Banned":"");
+  identity.append(name,handle,meta);
+  const actions=document.createElement("div");actions.className="site-account-actions";
+  if(account.ban_id){
+   if(siteModerationCache.permissions.unban){const unban=document.createElement("button");unban.type="button";unban.className="member-mod-action";unban.textContent="Unban";unban.onclick=async()=>{await runModerationAction("unban",account.username,"site",null,true);await loadSiteModeration()};actions.append(unban)}
+  }else if(siteModerationCache.permissions.ban){
+   const ban=document.createElement("button");ban.type="button";ban.className="member-mod-action danger-action";ban.textContent="Ban";ban.onclick=async()=>{await runModerationAction("ban",account.username,"site",null,true);await loadSiteModeration()};actions.append(ban)
+  }
+  row.append(identity,actions);list.append(row);
+ }
+}
+$("site-account-search").addEventListener("input",renderSiteModerationAccounts);
 
 async function loadSettingsServers(){const select=$("settings-server-select"),current=select.value;try{const result=await api("/api/servers");servers=result.servers;renderServers()}catch(e){msg($("server-role-message"),e.message);return}select.replaceChildren(new Option("Choose a server",""));servers.forEach(s=>select.add(new Option(s.name,s.id)));if(current&&servers.some(s=>String(s.id)===current))select.value=current;else if(activeServer)select.value=String(activeServer.id);if(select.value)loadServerRoleSettings(select.value);else $("server-role-list").textContent="Choose a server to manage its roles."}
 $("settings-server-select").onchange=()=>loadServerRoleSettings($("settings-server-select").value);

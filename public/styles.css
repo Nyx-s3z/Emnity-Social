@@ -379,3 +379,20 @@ input::placeholder { color: var(--muted); opacity: .7; }
   .call-dock.call-collapsed{inset:auto 10px 10px 10px;width:auto}
   .call-dock.call-collapsed .mini-call-panel{flex-wrap:wrap}
 }
+
+
+/* Dev-only site account moderation directory */
+.site-account-moderation{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.site-account-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.site-account-heading h4{margin:0 0 5px;font-size:14px}
+.site-account-heading .field-hint{margin:0}
+.site-account-count{flex:0 0 auto;padding:5px 8px;border:1px solid var(--line);border-radius:99px;color:var(--muted);font-size:10px}
+.site-account-list{display:grid;gap:7px;max-height:390px;overflow:auto;margin-top:12px}
+.site-account-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+.site-account-identity{display:grid;gap:3px;min-width:0}
+.site-account-identity strong{font-size:12px;overflow-wrap:anywhere}
+.site-account-identity span{font-size:10px;color:var(--muted)}
+.site-account-identity small{font-size:9px;color:var(--muted)}
+.site-account-actions{display:flex;flex:0 0 auto;gap:5px}
+.site-account-actions .member-mod-action{width:auto;height:28px;padding:4px 9px;opacity:1}
+@media(max-width:520px){.site-account-row{align-items:flex-start}.site-account-heading{flex-direction:column}.site-account-actions .member-mod-action{padding:5px 7px}}
