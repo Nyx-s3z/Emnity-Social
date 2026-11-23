@@ -1,226 +1,46 @@
 require("dotenv").config();
-
-const express = require("express");
-const session = require("express-session");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
-const { Pool } = require("pg");
-const PgSession = require("connect-pg-simple")(session);
-const crypto = require("crypto");
-const path = require("path");
-
-const app = express();
-const isProduction = process.env.NODE_ENV === "production";
-const port = Number(process.env.PORT || 3000);
-
-if (!process.env.DATABASE_URL) {
-  console.error("Missing DATABASE_URL. Copy .env.example to .env and configure PostgreSQL.");
-  process.exit(1);
-}
-if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
-  console.error("SESSION_SECRET must be a random value at least 32 characters long.");
-  process.exit(1);
-}
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-app.set("trust proxy", isProduction ? 1 : false);
-
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      frameAncestors: ["'none'"]
-    }
-  }
-}));
-app.use(express.json({ limit: "20kb" }));
-app.use(express.urlencoded({ extended: false, limit: "20kb" }));
-
-app.use(session({
-  store: new PgSession({ pool, tableName: "emnity_sessions", createTableIfMissing: true }),
-  name: "emnity.sid",
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: process.env.COOKIE_SECURE === "true",
-    sameSite: "lax",
-    maxAge: 1000 * 60 * 60 * 24 * 7
-  }
-}));
-
-app.use(express.static(path.join(__dirname, "public")));
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 12,
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-  message: { error: "Too many attempts. Please wait a little and try again." }
-});
-
-const cleanUsername = value => typeof value === "string" ? value.trim() : "";
-const validUsername = value => /^[a-zA-Z0-9_]{3,20}$/.test(value);
-const validPassword = value => typeof value === "string" && value.length >= 12 && value.length <= 128;
-
-function hashPassword(password, salt) {
-  return new Promise((resolve, reject) => {
-    crypto.scrypt(password, salt, 64, (error, key) => error ? reject(error) : resolve(key.toString("hex")));
-  });
-}
-async function verifyPassword(password, salt, storedHash) {
-  const candidate = Buffer.from(await hashPassword(password, salt), "hex");
-  const expected = Buffer.from(storedHash, "hex");
-  return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
-}
-function publicUser(row) {
-  return { id: row.id, username: row.username, displayName: row.display_name || row.username, createdAt: row.created_at };
-}
-function requireAuth(req, res, next) {
-  if (!req.session.userId) return res.status(401).json({ error: "Please sign in first." });
-  next();
-}
-function requireSameOrigin(req, res, next) {
-  const origin = req.get("origin");
-  if (!origin) return next();
-  try {
-    if (new URL(origin).host !== req.get("host")) return res.status(403).json({ error: "Request origin was not accepted." });
-  } catch {
-    return res.status(403).json({ error: "Invalid request origin." });
-  }
-  next();
-}
-
-async function initializeDatabase() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id BIGSERIAL PRIMARY KEY,
-      username VARCHAR(20) NOT NULL UNIQUE,
-      display_name VARCHAR(32) NOT NULL,
-      password_salt TEXT NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-  `);
-  console.log("Database ready.");
-}
-
-app.get("/api/health", (_req, res) => res.json({ ok: true, service: "Emnity Social" }));
-
-app.get("/api/me", async (req, res) => {
-  if (!req.session.userId) return res.json({ user: null });
-  try {
-    const result = await pool.query("SELECT id, username, display_name, created_at FROM users WHERE id = $1", [req.session.userId]);
-    if (!result.rows[0]) {
-      req.session.destroy(() => {});
-      return res.json({ user: null });
-    }
-    res.json({ user: publicUser(result.rows[0]) });
-  } catch (error) {
-    console.error("Session lookup failed:", error);
-    res.status(500).json({ error: "Something went wrong." });
-  }
-});
-
-app.post("/api/register", authLimiter, requireSameOrigin, async (req, res) => {
-  const username = cleanUsername(req.body.username).toLowerCase();
-  const displayName = typeof req.body.displayName === "string" ? req.body.displayName.trim().slice(0, 32) : username;
-  const password = req.body.password;
-  if (!validUsername(username)) return res.status(400).json({ error: "Username must be 3–20 characters using letters, numbers, or underscores." });
-  if (!validPassword(password)) return res.status(400).json({ error: "Password must be between 12 and 128 characters." });
-
-  try {
-    const salt = crypto.randomBytes(16).toString("hex");
-    const passwordHash = await hashPassword(password, salt);
-    const result = await pool.query(
-      `INSERT INTO users (username, display_name, password_salt, password_hash)
-       VALUES ($1, $2, $3, $4) RETURNING id, username, display_name, created_at`,
-      [username, displayName || username, salt, passwordHash]
-    );
-    req.session.regenerate(error => {
-      if (error) {
-        console.error("Session regeneration failed:", error);
-        return res.status(500).json({ error: "Account created, but sign-in failed. Please sign in." });
-      }
-      req.session.userId = result.rows[0].id;
-      req.session.save(saveError => {
-        if (saveError) return res.status(500).json({ error: "Account created, but sign-in failed. Please sign in." });
-        res.status(201).json({ user: publicUser(result.rows[0]) });
-      });
-    });
-  } catch (error) {
-    if (error.code === "23505") return res.status(409).json({ error: "That username is already taken." });
-    console.error("Registration failed:", error);
-    res.status(500).json({ error: "Could not create your account right now." });
-  }
-});
-
-app.post("/api/login", authLimiter, requireSameOrigin, async (req, res) => {
-  const username = cleanUsername(req.body.username).toLowerCase();
-  const password = req.body.password;
-  if (!username || typeof password !== "string") return res.status(400).json({ error: "Enter your username and password." });
-  try {
-    const result = await pool.query(
-      "SELECT id, username, display_name, password_salt, password_hash, created_at FROM users WHERE LOWER(username) = LOWER($1)",
-      [username]
-    );
-    const user = result.rows[0];
-    if (!user || !(await verifyPassword(password, user.password_salt, user.password_hash))) {
-      return res.status(401).json({ error: "Incorrect username or password." });
-    }
-    req.session.regenerate(error => {
-      if (error) return res.status(500).json({ error: "Could not start your session." });
-      req.session.userId = user.id;
-      req.session.save(saveError => {
-        if (saveError) return res.status(500).json({ error: "Could not start your session." });
-        res.json({ user: publicUser(user) });
-      });
-    });
-  } catch (error) {
-    console.error("Login failed:", error);
-    res.status(500).json({ error: "Could not sign in right now." });
-  }
-});
-
-app.post("/api/logout", requireSameOrigin, (req, res) => {
-  req.session.destroy(error => {
-    if (error) return res.status(500).json({ error: "Could not sign out." });
-    res.clearCookie("emnity.sid", { httpOnly: true, secure: process.env.COOKIE_SECURE === "true", sameSite: "lax" });
-    res.json({ ok: true });
-  });
-});
-
-app.patch("/api/profile", requireAuth, requireSameOrigin, async (req, res) => {
-  const displayName = typeof req.body.displayName === "string" ? req.body.displayName.trim() : "";
-  if (displayName.length < 1 || displayName.length > 32) return res.status(400).json({ error: "Display name must be 1–32 characters." });
-  try {
-    const result = await pool.query(
-      "UPDATE users SET display_name = $1 WHERE id = $2 RETURNING id, username, display_name, created_at",
-      [displayName, req.session.userId]
-    );
-    res.json({ user: publicUser(result.rows[0]) });
-  } catch (error) {
-    console.error("Profile update failed:", error);
-    res.status(500).json({ error: "Could not update your profile." });
-  }
-});
-
-app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-
-initializeDatabase()
-  .then(() => app.listen(port, () => console.log(`Emnity Social running on port ${port}`)))
-  .catch(error => {
-    console.error("Database initialization failed:", error);
-    process.exit(1);
-  });
-
-process.on("SIGTERM", async () => {
-  await pool.end();
-  process.exit(0);
-});
+const express=require("express"),session=require("express-session"),helmet=require("helmet"),rateLimit=require("express-rate-limit"),{Pool}=require("pg"),PgSession=require("connect-pg-simple")(session),crypto=require("crypto"),path=require("path");
+const app=express(),production=process.env.NODE_ENV==="production",port=Number(process.env.PORT||3000);
+if(!process.env.DATABASE_URL||!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<32){console.error("DATABASE_URL and a 32+ character SESSION_SECRET are required.");process.exit(1);}
+const pool=new Pool({connectionString:process.env.DATABASE_URL});app.set("trust proxy",production?1:false);
+app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],styleSrc:["'self'"],scriptSrc:["'self'"],imgSrc:["'self'","data:"],connectSrc:["'self'"],objectSrc:["'none'"],frameAncestors:["'none'"]}}}));
+app.use(express.json({limit:"20kb"}));app.use(express.urlencoded({extended:false,limit:"20kb"}));
+app.use(session({store:new PgSession({pool,tableName:"emnity_sessions",createTableIfMissing:true}),name:"emnity.sid",secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,cookie:{httpOnly:true,secure:process.env.COOKIE_SECURE==="true",sameSite:"lax",maxAge:604800000}}));
+app.use(express.static(path.join(__dirname,"public")));
+const authLimit=rateLimit({windowMs:900000,limit:12,standardHeaders:"draft-7",legacyHeaders:false}),writeLimit=rateLimit({windowMs:60000,limit:40,standardHeaders:"draft-7",legacyHeaders:false});
+const clean=v=>typeof v==="string"?v.trim():"",validUser=v=>/^[a-zA-Z0-9_]{3,20}$/.test(v),validPass=v=>typeof v==="string"&&v.length>=12&&v.length<=128;
+const publicUser=r=>({id:r.id,username:r.username,displayName:r.display_name||r.username,createdAt:r.created_at});
+function hash(p,s){return new Promise((ok,no)=>crypto.scrypt(p,s,64,(e,k)=>e?no(e):ok(k.toString("hex"))));}
+async function verify(p,s,h){const a=Buffer.from(await hash(p,s),"hex"),b=Buffer.from(h,"hex");return a.length===b.length&&crypto.timingSafeEqual(a,b);}
+function auth(req,res,next){if(!req.session.userId)return res.status(401).json({error:"Please sign in first."});next();}
+function sameOrigin(req,res,next){const o=req.get("origin");if(!o)return next();try{if(new URL(o).host!==req.get("host"))return res.status(403).json({error:"Request origin was not accepted."});}catch{return res.status(403).json({error:"Invalid request origin."});}next();}
+async function member(req,res,next){try{const r=await pool.query("SELECT 1 FROM server_members WHERE server_id=$1 AND user_id=$2",[req.params.serverId,req.session.userId]);if(!r.rowCount)return res.status(404).json({error:"Server not found."});next();}catch(e){console.error(e);res.status(500).json({error:"Something went wrong."});}}
+async function init(){
+await pool.query("CREATE TABLE IF NOT EXISTS users(id BIGSERIAL PRIMARY KEY,username VARCHAR(20) NOT NULL UNIQUE,display_name VARCHAR(32) NOT NULL,password_salt TEXT NOT NULL,password_hash TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS status_preference VARCHAR(12) NOT NULL DEFAULT 'online'");
+await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW()");
+await pool.query("CREATE TABLE IF NOT EXISTS servers(id BIGSERIAL PRIMARY KEY,name VARCHAR(40) NOT NULL,invite_code VARCHAR(20) NOT NULL UNIQUE,owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+await pool.query("CREATE TABLE IF NOT EXISTS server_members(server_id BIGINT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(server_id,user_id))");
+await pool.query("CREATE TABLE IF NOT EXISTS channels(id BIGSERIAL PRIMARY KEY,server_id BIGINT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,name VARCHAR(40) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+await pool.query("CREATE TABLE IF NOT EXISTS messages(id BIGSERIAL PRIMARY KEY,channel_id BIGINT NOT NULL REFERENCES channels(id) ON DELETE CASCADE,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,content VARCHAR(2000) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+await pool.query("CREATE INDEX IF NOT EXISTS messages_channel_idx ON messages(channel_id,id DESC)");
+await pool.query("CREATE INDEX IF NOT EXISTS members_user_idx ON server_members(user_id)");
+console.log("Database ready.");}
+app.get("/api/health",(_,r)=>r.json({ok:true,service:"Emnity Social"}));
+app.get("/api/me",async(q,s)=>{if(!q.session.userId)return s.json({user:null});try{const x=await pool.query("SELECT id,username,display_name,created_at FROM users WHERE id=$1",[q.session.userId]);if(!x.rows[0]){q.session.destroy(()=>{});return s.json({user:null});}s.json({user:publicUser(x.rows[0])});}catch(e){console.error(e);s.status(500).json({error:"Something went wrong."});}});
+app.post("/api/register",authLimit,sameOrigin,async(q,s)=>{const u=clean(q.body.username).toLowerCase(),d=clean(q.body.displayName).slice(0,32)||u,p=q.body.password;if(!validUser(u))return s.status(400).json({error:"Username must be 3–20 letters, numbers, or underscores."});if(!validPass(p))return s.status(400).json({error:"Password must be 12–128 characters."});try{const salt=crypto.randomBytes(16).toString("hex"),ph=await hash(p,salt),x=await pool.query("INSERT INTO users(username,display_name,password_salt,password_hash) VALUES($1,$2,$3,$4) RETURNING id,username,display_name,created_at",[u,d,salt,ph]);q.session.regenerate(e=>{if(e)return s.status(500).json({error:"Account created, but sign-in failed. Please sign in."});q.session.userId=x.rows[0].id;q.session.save(se=>se?s.status(500).json({error:"Please sign in."}):s.status(201).json({user:publicUser(x.rows[0])}));});}catch(e){if(e.code==="23505")return s.status(409).json({error:"That username is already taken."});console.error(e);s.status(500).json({error:"Could not create your account."});}});
+app.post("/api/login",authLimit,sameOrigin,async(q,s)=>{const u=clean(q.body.username).toLowerCase(),p=q.body.password;if(!u||typeof p!=="string")return s.status(400).json({error:"Enter your username and password."});try{const x=await pool.query("SELECT id,username,display_name,password_salt,password_hash,created_at FROM users WHERE LOWER(username)=LOWER($1)",[u]),v=x.rows[0];if(!v||!(await verify(p,v.password_salt,v.password_hash)))return s.status(401).json({error:"Incorrect username or password."});q.session.regenerate(e=>{if(e)return s.status(500).json({error:"Could not start your session."});q.session.userId=v.id;q.session.save(se=>se?s.status(500).json({error:"Could not start your session."}):s.json({user:publicUser(v)}));});}catch(e){console.error(e);s.status(500).json({error:"Could not sign in."});}});
+app.post("/api/logout",sameOrigin,(q,s)=>q.session.destroy(e=>{if(e)return s.status(500).json({error:"Could not sign out."});s.clearCookie("emnity.sid",{httpOnly:true,secure:process.env.COOKIE_SECURE==="true",sameSite:"lax"});s.json({ok:true});}));
+app.patch("/api/profile",auth,sameOrigin,async(q,s)=>{const d=clean(q.body.displayName);if(!d||d.length>32)return s.status(400).json({error:"Display name must be 1–32 characters."});try{const x=await pool.query("UPDATE users SET display_name=$1 WHERE id=$2 RETURNING id,username,display_name,created_at",[d,q.session.userId]);s.json({user:publicUser(x.rows[0])});}catch(e){console.error(e);s.status(500).json({error:"Could not update profile."});}});
+app.post("/api/heartbeat",auth,sameOrigin,async(q,s)=>{try{await pool.query("UPDATE users SET last_seen=NOW() WHERE id=$1",[q.session.userId]);s.json({ok:true});}catch(e){console.error(e);s.status(500).json({error:"Heartbeat failed."});}});
+app.patch("/api/status",auth,sameOrigin,async(q,s)=>{const st=q.body.status;if(!["online","idle","dnd","invisible"].includes(st))return s.status(400).json({error:"Invalid status."});try{await pool.query("UPDATE users SET status_preference=$1,last_seen=NOW() WHERE id=$2",[st,q.session.userId]);s.json({status:st});}catch(e){console.error(e);s.status(500).json({error:"Could not update status."});}});
+app.get("/api/servers",auth,async(q,s)=>{try{const x=await pool.query("SELECT s.id,s.name,s.owner_id,(SELECT id FROM channels c WHERE c.server_id=s.id ORDER BY id LIMIT 1) AS first_channel_id FROM servers s JOIN server_members m ON m.server_id=s.id WHERE m.user_id=$1 ORDER BY s.id",[q.session.userId]);s.json({servers:x.rows});}catch(e){console.error(e);s.status(500).json({error:"Could not load servers."});}});
+app.post("/api/servers",auth,sameOrigin,writeLimit,async(q,s)=>{const n=clean(q.body.name);if(n.length<2||n.length>40)return s.status(400).json({error:"Server name must be 2–40 characters."});const c=await pool.connect();try{await c.query("BEGIN");const x=await c.query("INSERT INTO servers(name,invite_code,owner_id) VALUES($1,$2,$3) RETURNING id,name,owner_id,invite_code",[n,crypto.randomBytes(9).toString("base64url"),q.session.userId]);await c.query("INSERT INTO server_members(server_id,user_id) VALUES($1,$2)",[x.rows[0].id,q.session.userId]);await c.query("INSERT INTO channels(server_id,name) VALUES($1,'general')",[x.rows[0].id]);await c.query("COMMIT");s.status(201).json({server:x.rows[0]});}catch(e){await c.query("ROLLBACK");console.error(e);s.status(500).json({error:"Could not create server."});}finally{c.release();}});
+app.post("/api/servers/join",auth,sameOrigin,writeLimit,async(q,s)=>{const code=clean(q.body.invite);if(!code||code.length>30)return s.status(400).json({error:"Enter a valid invite code."});try{const x=await pool.query("SELECT id,name FROM servers WHERE UPPER(invite_code)=UPPER($1)",[code]);if(!x.rows[0])return s.status(404).json({error:"Invite code not found."});await pool.query("INSERT INTO server_members(server_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[x.rows[0].id,q.session.userId]);s.json({server:x.rows[0]});}catch(e){console.error(e);s.status(500).json({error:"Could not join server."});}});
+app.get("/api/servers/:serverId",auth,member,async(q,s)=>{try{const [sv,ch,mb]=await Promise.all([pool.query("SELECT id,name,owner_id,invite_code FROM servers WHERE id=$1",[q.params.serverId]),pool.query("SELECT id,name FROM channels WHERE server_id=$1 ORDER BY id",[q.params.serverId]),pool.query("SELECT u.id,u.username,u.display_name,u.status_preference,u.last_seen FROM server_members m JOIN users u ON u.id=m.user_id WHERE m.server_id=$1",[q.params.serverId])]);const now=Date.now(),members=mb.rows.map(u=>({id:u.id,username:u.username,displayName:u.display_name,status:now-new Date(u.last_seen).getTime()>70000||u.status_preference==="invisible"?"offline":u.status_preference})).sort((a,b)=>(a.status==="offline")-(b.status==="offline")||a.displayName.localeCompare(b.displayName));s.json({server:sv.rows[0],channels:ch.rows,members});}catch(e){console.error(e);s.status(500).json({error:"Could not load server."});}});
+app.post("/api/servers/:serverId/channels",auth,sameOrigin,member,writeLimit,async(q,s)=>{const n=clean(q.body.name).toLowerCase().replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");if(n.length<2||n.length>40)return s.status(400).json({error:"Channel names need 2–40 letters, numbers, or hyphens."});try{const o=await pool.query("SELECT owner_id FROM servers WHERE id=$1",[q.params.serverId]);if(String(o.rows[0].owner_id)!==String(q.session.userId))return s.status(403).json({error:"Only the server owner can add channels right now."});const x=await pool.query("INSERT INTO channels(server_id,name) VALUES($1,$2) RETURNING id,name",[q.params.serverId,n]);s.status(201).json({channel:x.rows[0]});}catch(e){console.error(e);s.status(500).json({error:"Could not create channel."});}});
+app.get("/api/channels/:channelId/messages",auth,async(q,s)=>{try{const a=await pool.query("SELECT c.id FROM channels c JOIN server_members m ON m.server_id=c.server_id WHERE c.id=$1 AND m.user_id=$2",[q.params.channelId,q.session.userId]);if(!a.rowCount)return s.status(404).json({error:"Channel not found."});const after=/^\\d+$/.test(String(q.query.after||""))?q.query.after:"0";const x=await pool.query("SELECT m.id,m.content,m.created_at,u.id AS user_id,u.username,u.display_name FROM messages m JOIN users u ON u.id=m.user_id WHERE m.channel_id=$1 AND m.id>$2 ORDER BY m.id DESC LIMIT 60",[q.params.channelId,after]);s.json({messages:x.rows.reverse()});}catch(e){console.error(e);s.status(500).json({error:"Could not load messages."});}});
+app.post("/api/channels/:channelId/messages",auth,sameOrigin,writeLimit,async(q,s)=>{const body=typeof q.body.content==="string"?q.body.content.trim():"";if(!body||body.length>2000)return s.status(400).json({error:"Messages must be 1–2,000 characters."});try{const a=await pool.query("SELECT c.id FROM channels c JOIN server_members m ON m.server_id=c.server_id WHERE c.id=$1 AND m.user_id=$2",[q.params.channelId,q.session.userId]);if(!a.rowCount)return s.status(404).json({error:"Channel not found."});const [m,u]=await Promise.all([pool.query("INSERT INTO messages(channel_id,user_id,content) VALUES($1,$2,$3) RETURNING id,content,created_at",[q.params.channelId,q.session.userId,body]),pool.query("SELECT id,username,display_name FROM users WHERE id=$1",[q.session.userId])]);s.status(201).json({message:{...m.rows[0],user_id:u.rows[0].id,username:u.rows[0].username,display_name:u.rows[0].display_name}});}catch(e){console.error(e);s.status(500).json({error:"Could not send message."});}});
+app.get("*",(_,s)=>s.sendFile(path.join(__dirname,"public","index.html")));
+init().then(()=>app.listen(port,()=>console.log("Emnity Social running on port "+port))).catch(e=>{console.error("Database initialization failed:",e);process.exit(1);});
+process.on("SIGTERM",async()=>{await pool.end();process.exit(0);});
