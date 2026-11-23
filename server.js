@@ -1,8 +1,11 @@
 require("dotenv").config();
-const express=require("express"),session=require("express-session"),helmet=require("helmet"),rateLimit=require("express-rate-limit"),{Pool}=require("pg"),PgSession=require("connect-pg-simple")(session),crypto=require("crypto"),path=require("path");
+const express=require("express"),session=require("express-session"),helmet=require("helmet"),rateLimit=require("express-rate-limit"),{Pool}=require("pg"),PgSession=require("connect-pg-simple")(session),crypto=require("crypto"),path=require("path"),webpush=require("web-push");
 const app=express(),production=process.env.NODE_ENV==="production"||Boolean(process.env.RAILWAY_ENVIRONMENT),port=Number(process.env.PORT||3000);
 if(!process.env.DATABASE_URL||!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<32){console.error("DATABASE_URL and a 32+ character SESSION_SECRET are required.");process.exit(1);}
-const pool=new Pool({connectionString:process.env.DATABASE_URL});app.set("trust proxy",production?1:false);
+const pool=new Pool({connectionString:process.env.DATABASE_URL});
+const vapidPublicKey=process.env.WEB_PUSH_PUBLIC_KEY||"",pushEnabled=Boolean(vapidPublicKey&&process.env.WEB_PUSH_PRIVATE_KEY);
+if(pushEnabled)webpush.setVapidDetails(process.env.WEB_PUSH_SUBJECT||"mailto:admin@example.com",vapidPublicKey,process.env.WEB_PUSH_PRIVATE_KEY);
+app.set("trust proxy",production?1:false);
 app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],styleSrc:["'self'"],scriptSrc:["'self'"],imgSrc:["'self'","data:"],connectSrc:["'self'"],objectSrc:["'none'"],frameAncestors:["'none'"]}}}));
 app.use(express.json({limit:"200kb"}));app.use(express.urlencoded({extended:false,limit:"20kb"}));app.use("/api",(q,s,n)=>{s.set("Cache-Control","no-store");n();});
 const sessionMiddleware=session({store:new PgSession({pool,tableName:"emnity_sessions",createTableIfMissing:true}),name:"emnity.sid",secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,rolling:true,proxy:true,cookie:{httpOnly:true,secure:production,sameSite:"lax",maxAge:604800000,path:"/"}});app.use(sessionMiddleware);
@@ -36,7 +39,50 @@ await pool.query("CREATE TABLE IF NOT EXISTS dm_conversations(id BIGSERIAL PRIMA
 await pool.query("CREATE TABLE IF NOT EXISTS dm_messages(id BIGSERIAL PRIMARY KEY,conversation_id BIGINT NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,content VARCHAR(2000) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
 await pool.query("ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
 await pool.query("CREATE INDEX IF NOT EXISTS dm_messages_conversation_idx ON dm_messages(conversation_id,id DESC)");
+await pool.query("CREATE TABLE IF NOT EXISTS push_subscriptions(endpoint TEXT PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,subscription JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+await pool.query("CREATE INDEX IF NOT EXISTS push_subscriptions_user_idx ON push_subscriptions(user_id)");
+await pool.query("CREATE TABLE IF NOT EXISTS call_invites(id BIGSERIAL PRIMARY KEY,dm_id BIGINT NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,caller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,callee_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,status VARCHAR(12) NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','declined','cancelled')),created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),expires_at TIMESTAMPTZ NOT NULL)");
+await pool.query("CREATE INDEX IF NOT EXISTS call_invites_callee_pending_idx ON call_invites(callee_id,status,expires_at)");
 console.log("Database ready.");}
+async function sendPushToUsers(userIds,payload){
+ if(!pushEnabled||!Array.isArray(userIds)||!userIds.length)return;
+ try{
+  const ids=[...new Set(userIds.map(String).filter(id=>/^\d+$/.test(id)))];
+  if(!ids.length)return;
+  const rows=await pool.query("SELECT ps.endpoint,ps.subscription FROM push_subscriptions ps JOIN users u ON u.id=ps.user_id WHERE ps.user_id=ANY($1::bigint[]) AND u.status_preference NOT IN ('dnd','invisible')",[ids]);
+  await Promise.all(rows.rows.map(async row=>{
+   try{await webpush.sendNotification(row.subscription,JSON.stringify(payload),{TTL:payload.type==="call"?60:300,urgency:payload.type==="call"?"high":"normal"});}
+   catch(e){if(e.statusCode===404||e.statusCode===410){await pool.query("DELETE FROM push_subscriptions WHERE endpoint=$1",[row.endpoint]).catch(()=>{});}else console.error("Web Push delivery failed:",e.message);}
+  }));
+ }catch(e){console.error("Web Push dispatch failed:",e.message);}
+}
+
+app.get("/api/push/public-key",auth,(_,s)=>s.json({enabled:pushEnabled,publicKey:pushEnabled?vapidPublicKey:null}));
+app.post("/api/push/subscribe",auth,sameOrigin,writeLimit,async(q,s)=>{
+ const sub=q.body?.subscription,endpoint=typeof sub?.endpoint==="string"?sub.endpoint:"";
+ if(!pushEnabled)return s.status(503).json({error:"Push notifications are not configured on the server yet."});
+ if(endpoint.length>2048||!/^https:\/\//i.test(endpoint)||typeof sub?.keys?.p256dh!=="string"||typeof sub?.keys?.auth!=="string"||sub.keys.p256dh.length>256||sub.keys.auth.length>256)return s.status(400).json({error:"Invalid push subscription."});
+ try{await pool.query("INSERT INTO push_subscriptions(endpoint,user_id,subscription) VALUES($1,$2,$3::jsonb) ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription,updated_at=NOW()",[endpoint,q.session.userId,JSON.stringify(sub)]);s.status(201).json({ok:true});}
+ catch(e){console.error(e);s.status(500).json({error:"Could not save this device's notification subscription."});}
+});
+app.delete("/api/push/subscribe",auth,sameOrigin,writeLimit,async(q,s)=>{
+ const endpoint=typeof q.body?.endpoint==="string"?q.body.endpoint:"";
+ if(!endpoint||endpoint.length>2048)return s.status(400).json({error:"Invalid push endpoint."});
+ try{await pool.query("DELETE FROM push_subscriptions WHERE endpoint=$1 AND user_id=$2",[endpoint,q.session.userId]);s.json({ok:true});}
+ catch(e){console.error(e);s.status(500).json({error:"Could not remove this device's notification subscription."});}
+});
+app.get("/api/calls/pending",auth,async(q,s)=>{
+ try{const x=await pool.query("SELECT ci.id,ci.dm_id,u.display_name,u.username FROM call_invites ci JOIN users u ON u.id=ci.caller_id WHERE ci.callee_id=$1 AND ci.status='pending' AND ci.expires_at>NOW() ORDER BY ci.created_at DESC LIMIT 1",[q.session.userId]);const v=x.rows[0];s.json({invite:v?{id:v.id,dmId:v.dm_id,callerName:v.display_name||v.username}:null});}
+ catch(e){console.error(e);s.status(500).json({error:"Could not check for incoming calls."});}
+});
+app.post("/api/calls/:callId/accept",auth,sameOrigin,writeLimit,async(q,s)=>{
+ try{const x=await pool.query("UPDATE call_invites SET status='accepted' WHERE id=$1 AND callee_id=$2 AND status='pending' AND expires_at>NOW() RETURNING dm_id",[q.params.callId,q.session.userId]);if(!x.rowCount)return s.status(404).json({error:"This call has expired or is no longer available."});s.json({ok:true,dmId:x.rows[0].dm_id});}
+ catch(e){console.error(e);s.status(500).json({error:"Could not accept this call."});}
+});
+app.post("/api/calls/:callId/decline",auth,sameOrigin,writeLimit,async(q,s)=>{
+ try{await pool.query("UPDATE call_invites SET status='declined' WHERE id=$1 AND callee_id=$2 AND status='pending'",[q.params.callId,q.session.userId]);s.json({ok:true});}
+ catch(e){console.error(e);s.status(500).json({error:"Could not decline this call."});}
+});
 app.get("/api/health",(_,r)=>r.json({ok:true,service:"Emnity Social"}));
 app.get("/api/me",async(q,s)=>{if(!q.session.userId)return s.json({user:null});try{const x=await pool.query("SELECT id,username,display_name,site_role,avatar_data,created_at FROM users WHERE id=$1",[q.session.userId]);if(!x.rows[0]){q.session.destroy(()=>{});return s.json({user:null});}s.json({user:publicUser(x.rows[0])});}catch(e){console.error(e);s.status(500).json({error:"Something went wrong."});}});
 app.post("/api/register",authLimit,sameOrigin,async(q,s)=>{const u=clean(q.body.username).toLowerCase(),d=clean(q.body.displayName).slice(0,32)||u,p=q.body.password;if(!validUser(u))return s.status(400).json({error:"Username must be 3–20 letters, numbers, or underscores."});if(!validPass(p))return s.status(400).json({error:"Password must be 12–128 characters."});try{const salt=crypto.randomBytes(16).toString("hex"),ph=await hash(p,salt),x=await pool.query("INSERT INTO users(username,display_name,password_salt,password_hash) VALUES($1,$2,$3,$4) RETURNING id,username,display_name,created_at",[u,d,salt,ph]);q.session.regenerate(e=>{if(e)return s.status(500).json({error:"Account created, but sign-in failed. Please sign in."});q.session.userId=x.rows[0].id;q.session.save(se=>se?s.status(500).json({error:"Please sign in."}):s.status(201).json({user:publicUser(x.rows[0])}));});}catch(e){if(e.code==="23505")return s.status(409).json({error:"That username is already taken."});console.error(e);s.status(500).json({error:"Could not create your account."});}});
