@@ -4,12 +4,37 @@ const app=express(),production=process.env.NODE_ENV==="production"||Boolean(proc
 if(!process.env.DATABASE_URL||!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<32){console.error("DATABASE_URL and a 32+ character SESSION_SECRET are required.");process.exit(1);}
 const pool=new Pool({connectionString:process.env.DATABASE_URL});app.set("trust proxy",production?1:false);
 app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],styleSrc:["'self'"],scriptSrc:["'self'"],imgSrc:["'self'","data:"],connectSrc:["'self'"],objectSrc:["'none'"],frameAncestors:["'none'"]}}}));
-app.use(express.json({limit:"200kb"}));app.use(express.urlencoded({extended:false,limit:"20kb"}));app.use("/api",(q,s,n)=>{s.set("Cache-Control","no-store");n();});
+app.use(express.json({limit:"24mb"}));app.use(express.urlencoded({extended:false,limit:"20kb"}));app.use("/api",(q,s,n)=>{s.set("Cache-Control","no-store");n();});
 const sessionMiddleware=session({store:new PgSession({pool,tableName:"emnity_sessions",createTableIfMissing:true}),name:"emnity.sid",secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,rolling:true,proxy:true,cookie:{httpOnly:true,secure:production,sameSite:"lax",maxAge:604800000,path:"/"}});app.use(sessionMiddleware);
 app.use(express.static(path.join(__dirname,"public")));
 const authLimit=rateLimit({windowMs:900000,limit:12,standardHeaders:"draft-7",legacyHeaders:false}),writeLimit=rateLimit({windowMs:60000,limit:40,standardHeaders:"draft-7",legacyHeaders:false});
 const clean=v=>typeof v==="string"?v.trim():"",validUser=v=>/^[a-zA-Z0-9_-]{3,20}$/.test(v),validPass=v=>typeof v==="string"&&v.length>=12&&v.length<=128;
 const publicUser=r=>({id:r.id,username:r.username,displayName:r.display_name||r.username,siteRole:r.site_role||null,avatarData:r.avatar_data||null,createdAt:r.created_at});
+const MAX_ATTACHMENT_SIZE=8*1024*1024,MAX_TOTAL_ATTACHMENT_SIZE=16*1024*1024,MAX_ATTACHMENTS=4;
+function parseMessageAttachments(raw){
+ if(raw===undefined)return [];
+ if(!Array.isArray(raw)||raw.length>MAX_ATTACHMENTS)throw Error("Attach up to 4 files per message.");
+ let total=0;
+ return raw.map(item=>{
+  if(!item||typeof item.name!=="string"||typeof item.data!=="string")throw Error("One of those files could not be read.");
+  const name=path.basename(item.name.replace(/\\/g,"/")).replace(/[\x00-\x1f\x7f]/g,"").trim().slice(0,180)||"attachment";
+  const ext=path.extname(name).toLowerCase();
+  if([".html",".htm",".svg",".js",".mjs",".cjs",".exe",".dll",".bat",".cmd",".com",".msi",".ps1",".sh",".jar",".apk",".scr",".vbs",".php"].includes(ext))throw Error("That file type is not supported.");
+  const encoded=item.data.replace(/^data:[^,]*;base64,/,"");
+  if(!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded))throw Error("A file upload was not valid.");
+  const data=Buffer.from(encoded,"base64");
+  if(!data.length||data.length>MAX_ATTACHMENT_SIZE)throw Error("Each file must be 8 MB or smaller.");
+  total+=data.length;if(total>MAX_TOTAL_ATTACHMENT_SIZE)throw Error("All attachments together must be 16 MB or smaller.");
+  const requested=String(item.type||"application/octet-stream").toLowerCase().split(";")[0];
+  let mime="application/octet-stream";
+  const signatures=[["image/png",data.length>=8&&data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))],["image/jpeg",data.length>=3&&data[0]===255&&data[1]===216&&data[2]===255],["image/gif",data.length>=6&&["GIF87a","GIF89a"].includes(data.subarray(0,6).toString("ascii"))],["image/webp",data.length>=12&&data.subarray(0,4).toString("ascii")==="RIFF"&&data.subarray(8,12).toString("ascii")==="WEBP"]];
+  const actual=signatures.find(x=>x[1])?.[0];
+  if(requested.startsWith("image/")){if(!actual||actual!==requested)throw Error("That image could not be verified. Use a PNG, JPG, GIF, or WebP image.");mime=actual;}
+  else if(actual)mime=actual;
+  else if(requested==="application/pdf"&&data.subarray(0,5).toString("ascii")==="%PDF-")mime="application/pdf";
+  return {name,mime,data,size:data.length};
+ });
+}
 function hash(p,s){return new Promise((ok,no)=>crypto.scrypt(p,s,64,(e,k)=>e?no(e):ok(k.toString("hex"))));}
 async function verify(p,s,h){const a=Buffer.from(await hash(p,s),"hex"),b=Buffer.from(h,"hex");return a.length===b.length&&crypto.timingSafeEqual(a,b);}
 async function auth(req,res,next){if(!req.session.userId)return res.status(401).json({error:"Please sign in first."});try{const b=await pool.query("SELECT expires_at FROM site_bans WHERE user_id=$1 AND (expires_at IS NULL OR expires_at>NOW())",[req.session.userId]);if(b.rowCount){req.session.destroy(()=>{});return res.status(403).json({error:"This account is banned from Emnity Social."});}next();}catch(e){console.error(e);res.status(500).json({error:"Could not verify account status."});}}
@@ -36,6 +61,9 @@ await pool.query("CREATE TABLE IF NOT EXISTS dm_conversations(id BIGSERIAL PRIMA
 await pool.query("CREATE TABLE IF NOT EXISTS dm_messages(id BIGSERIAL PRIMARY KEY,conversation_id BIGINT NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,content VARCHAR(2000) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
 await pool.query("ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ");
 await pool.query("CREATE INDEX IF NOT EXISTS dm_messages_conversation_idx ON dm_messages(conversation_id,id DESC)");
+await pool.query("CREATE TABLE IF NOT EXISTS message_attachments(id BIGSERIAL PRIMARY KEY,channel_message_id BIGINT REFERENCES messages(id) ON DELETE CASCADE,dm_message_id BIGINT REFERENCES dm_messages(id) ON DELETE CASCADE,uploader_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,file_name VARCHAR(180) NOT NULL,mime_type VARCHAR(120) NOT NULL,file_size INTEGER NOT NULL,file_data BYTEA NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),CHECK((channel_message_id IS NOT NULL) <> (dm_message_id IS NOT NULL)))");
+await pool.query("CREATE INDEX IF NOT EXISTS message_attachments_channel_idx ON message_attachments(channel_message_id) WHERE channel_message_id IS NOT NULL");
+await pool.query("CREATE INDEX IF NOT EXISTS message_attachments_dm_idx ON message_attachments(dm_message_id) WHERE dm_message_id IS NOT NULL");
 await pool.query("CREATE TABLE IF NOT EXISTS site_bans(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,moderator_id BIGINT NOT NULL REFERENCES users(id),reason TEXT NOT NULL DEFAULT '',created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),expires_at TIMESTAMPTZ)");
 await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS site_bans_user_unique_idx ON site_bans(user_id)");
 await pool.query("CREATE TABLE IF NOT EXISTS server_bans(id BIGSERIAL PRIMARY KEY,server_id BIGINT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,moderator_id BIGINT NOT NULL REFERENCES users(id),reason TEXT NOT NULL DEFAULT '',created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),expires_at TIMESTAMPTZ,UNIQUE(server_id,user_id))");
