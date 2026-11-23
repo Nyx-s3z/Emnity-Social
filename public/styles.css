@@ -472,3 +472,7 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .autocomplete-option:hover,.autocomplete-option.selected{background:var(--accent-soft);color:var(--text)}
 @media(max-width:600px){.mention-autocomplete{left:8px;right:8px}}
 .notification-settings{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+
+
+/* Branded confirmation for removing a DM from the local inbox. */
+.dm-remove-dialog{width:min(92vw,420px);text-align:center;padding:28px}.dm-remove-icon{display:grid;place-items:center;width:42px;height:42px;margin:0 auto 14px;border:1px solid rgba(220,90,100,.35);border-radius:13px;background:rgba(220,70,80,.1);color:#e47b83;font-size:29px;font-weight:500;line-height:1}.dm-remove-dialog h2{margin:0;font-size:20px}.dm-remove-copy{margin:12px 0 22px;font-size:12px;line-height:1.65}.dm-remove-copy strong{color:var(--text);font-weight:750}.dm-remove-actions{justify-content:center;gap:9px;flex-wrap:wrap}.dm-remove-actions button{min-height:40px;padding:9px 14px}.danger-confirm-button{background:#c94c59!important;border-color:#c94c59!important;color:#fff!important}.danger-confirm-button:hover{background:#ad3947!important}
