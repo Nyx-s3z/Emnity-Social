@@ -109,3 +109,15 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .message-head strong{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px}
 .profile-copy strong{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
 .dm-copy strong{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
+
+/* Keep the app inside the viewport; chat and member lists scroll independently. */
+.app-shell{height:100vh;min-height:0;overflow:hidden}
+.server-rail,.side-panel,.main-panel{height:100vh;min-height:0}
+.side-panel{overflow-y:auto;overflow-x:hidden}
+.main-panel{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{flex:0 0 76px;min-width:0}
+.chat-layout{flex:1;min-height:0;height:auto;overflow:hidden}
+.chat-main{min-height:0;overflow:hidden}
+.message-list{min-height:0;overscroll-behavior:contain}
+.member-panel{min-height:0;overscroll-behavior:contain}
+.typing-indicator{flex:0 0 auto;min-height:18px;padding:0 20px 4px;color:var(--muted);font-size:10px;font-style:italic}
