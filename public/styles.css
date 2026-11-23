@@ -160,3 +160,7 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
 /* Clean action dialogs and non-blocking feedback for common actions. */
 .action-dialog-description{font-size:12px;line-height:1.55;margin:10px 0 16px}.action-dialog form label{margin-top:8px}.action-dialog .incoming-actions{justify-content:flex-end}.action-dialog .incoming-actions button{min-width:104px}.app-toast{position:fixed;right:22px;bottom:22px;z-index:2000;max-width:min(380px,calc(100vw - 32px));padding:12px 16px;border:1px solid rgba(239,89,103,.35);border-radius:12px;background:var(--panel);color:var(--text);box-shadow:var(--shadow);font-size:12px;opacity:0;transform:translateY(8px);transition:opacity .18s ease,transform .18s ease}.app-toast.visible{opacity:1;transform:translateY(0)}.app-toast-success{border-color:rgba(79,206,145,.4)}
+
+
+/* Keep personal message highlights compact instead of stretching across the chat. */
+.message-own{width:fit-content;max-width:min(100%,720px);grid-template-columns:36px minmax(0,1fr);padding:6px 9px}
