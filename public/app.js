@@ -1,4 +1,7 @@
 const $=id=>document.getElementById(id);
+function clearEmnityNotifications(){if(!("serviceWorker" in navigator))return;navigator.serviceWorker.ready.then(registration=>registration.getNotifications().then(notifications=>notifications.forEach(notification=>notification.close()))).catch(()=>{});if("clearAppBadge" in navigator)navigator.clearAppBadge().catch(()=>{})}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")clearEmnityNotifications()});
+window.addEventListener("focus",clearEmnityNotifications);
 function setMobileNav(open){const drawer=$("mobile-nav-drawer"),toggle=$("mobile-nav-toggle"),backdrop=$("mobile-nav-backdrop");if(!drawer||!toggle||!backdrop)return;const mobile=window.matchMedia("(max-width: 760px)").matches,show=Boolean(open)&&mobile;drawer.classList.toggle("open",show);drawer.setAttribute("aria-hidden",String(mobile&&!show));drawer.inert=mobile&&!show;toggle.setAttribute("aria-expanded",String(show));toggle.setAttribute("aria-label",show?"Close navigation menu":"Open navigation menu");toggle.textContent=show?"✕":"☰";backdrop.classList.toggle("hidden",!show);backdrop.tabIndex=show?0:-1}
 $("mobile-nav-toggle").addEventListener("click",()=>setMobileNav(!$("mobile-nav-drawer").classList.contains("open")));
 $("mobile-nav-backdrop").addEventListener("click",()=>setMobileNav(false));
