@@ -164,3 +164,36 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
 /* Compact personal-message highlights */
 .message-own{width:fit-content;max-width:min(100%,720px);padding:6px 9px}
+
+
+/* Mobile navigation drawer */
+.mobile-nav-drawer{display:contents}
+.mobile-nav-toggle{display:none}
+.mobile-nav-backdrop{display:none}
+@media(max-width:760px){
+  .app-shell{display:block;height:100dvh;min-height:0;overflow:hidden}
+  .mobile-nav-drawer{position:fixed;z-index:120;inset:0 auto 0 0;width:min(88vw,360px);height:100dvh;display:grid;grid-template-columns:58px minmax(0,1fr);grid-template-rows:minmax(0,1fr);background:var(--panel);box-shadow:var(--shadow);transform:translateX(-105%);transition:transform .24s ease;will-change:transform}
+  .mobile-nav-drawer.open{transform:translateX(0)}
+  .server-rail{position:relative;inset:auto;width:58px;height:100%;min-height:0;padding:calc(14px + env(safe-area-inset-top)) 0 calc(14px + env(safe-area-inset-bottom));overflow-y:auto}
+  .side-panel{grid-column:auto;grid-row:auto;width:100%;height:100%;min-height:0;overflow-y:auto;border-right:0;padding-bottom:env(safe-area-inset-bottom)}
+  .main-panel{width:100%;height:100dvh;min-height:0;overflow:hidden}
+  .topbar{height:64px;padding:0 12px;gap:10px}
+  .mobile-nav-toggle{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border:1px solid var(--line);border-radius:11px;background:var(--panel-2);color:var(--text);font-size:20px}
+  .breadcrumb{min-width:0;flex:1;gap:8px;overflow:hidden}
+  .breadcrumb strong,.breadcrumb #main-subtitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar-right{flex:0 0 auto}
+  .mobile-nav-backdrop{display:block;position:fixed;z-index:110;inset:0;width:100%;height:100%;padding:0;border:0;background:rgba(0,0,0,.58);backdrop-filter:blur(2px)}
+  .mobile-nav-backdrop.hidden{display:none}
+  .chat-layout{height:calc(100dvh - 64px);min-height:0}
+}
+@media(max-width:600px){
+  .mobile-nav-drawer{grid-template-columns:52px minmax(0,1fr)}
+  .server-rail{width:52px}
+  .server-rail-list button,.rail-home,.server-placeholder{width:38px;height:38px}
+  .main-panel{height:100dvh}
+  .topbar{padding:0 10px}
+  .mobile-nav-toggle{flex-basis:38px;width:38px;height:38px}
+}
+@media(prefers-reduced-motion:reduce){
+  .mobile-nav-drawer{transition:none}
+}
