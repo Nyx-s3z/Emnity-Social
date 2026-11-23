@@ -232,3 +232,18 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .terms-list li strong{display:block;color:var(--text);margin-bottom:3px}
 .terms-list li p{margin:0;color:var(--muted);font-size:12px;line-height:1.55}
 .terms-agree{position:sticky;bottom:0}
+
+
+/* Floating compact call controls shown when the call is minimized. */
+.call-dock.call-collapsed{position:fixed;right:18px;bottom:18px;z-index:1000;width:min(440px,calc(100vw - 36px));margin:0;padding:0;border-radius:14px;overflow:hidden;}
+.call-dock.call-collapsed>.call-dock-head,.call-dock.call-collapsed>.call-stage,.call-dock.call-collapsed>.call-controls{display:none!important}
+.mini-call-panel{display:none;align-items:center;gap:8px;padding:10px 12px;}
+.call-dock.call-collapsed .mini-call-panel{display:flex;}
+.mini-call-indicator{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:var(--success);box-shadow:0 0 0 4px color-mix(in srgb,var(--success) 16%,transparent)}
+.mini-call-copy{min-width:70px;flex:1;display:grid;gap:3px;}
+.mini-call-copy strong{font-size:11px;}
+.mini-call-copy small{font-size:9px;color:var(--muted);}
+.mini-call-panel button{border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--text);padding:8px 9px;font-size:10px;font-weight:800;white-space:nowrap;}
+.mini-call-panel button:disabled{opacity:.45;cursor:not-allowed;}
+#mini-expand-button{min-width:32px;font-size:16px;padding:5px;}
+@media(max-width:600px){.call-dock.call-collapsed{right:10px;bottom:10px;width:calc(100vw - 20px)}.mini-call-panel{gap:5px;padding:8px}.mini-call-panel button{padding:7px 6px;font-size:9px}.mini-call-copy{min-width:55px}}
