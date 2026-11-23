@@ -398,10 +398,17 @@ input::placeholder { color: var(--muted); opacity: .7; }
 @media(max-width:520px){.site-account-row{align-items:flex-start}.site-account-heading{flex-direction:column}.site-account-actions .member-mod-action{padding:5px 7px}}
 
 
-/* Keep the Settings dialog its original size; scroll its contents when needed. */
-.settings-dialog{
-  max-height:88vh;
-  overflow-y:auto;
-  overflow-x:hidden;
-  overscroll-behavior:contain;
+/* Keep the Settings dialog size unchanged; let the category tabs scroll sideways. */
+.settings-tabs{
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  flex-wrap:nowrap;
+  white-space:nowrap;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+}
+.settings-tabs button{
+  flex:0 0 auto;
+  white-space:nowrap;
 }
