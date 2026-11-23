@@ -112,7 +112,7 @@ async function togglePushNotifications(){const button=$("push-notification-toggl
 $("push-notification-toggle").addEventListener("click",togglePushNotifications);
 async function checkPendingCall(){try{const d=await api("/api/calls/pending");if(!d.invite||voiceRoom||$("incoming-call-dialog").open)return;incomingDmId=d.invite.dmId;incomingCallId=String(d.invite.id);$("incoming-call-text").textContent=(d.invite.callerName||"Your friend")+" is inviting you to a voice call.";$("incoming-call-dialog").showModal()}catch(e){console.debug("Could not check pending calls:",e.message)}}
 window.addEventListener("focus",checkPendingCall);
-let pendingAvatarData=undefined;
+
 $("pfp-file").onchange=async()=>{const file=$("pfp-file").files[0];if(!file)return;if(!["image/png","image/jpeg","image/webp"].includes(file.type)){msg($("profile-message"),"Choose a PNG, JPG, or WebP image.");return}try{const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const canvas=document.createElement("canvas");canvas.width=256;canvas.height=256;const ctx=canvas.getContext("2d");const scale=Math.max(256/img.width,256/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(256-w)/2,(256-h)/2,w,h);resolve(canvas.toDataURL("image/jpeg",.78))};img.onerror=reject;img.src=reader.result};reader.onerror=reject;reader.readAsDataURL(file)});pendingAvatarData=data;setAvatar($("pfp-preview"),data,user.displayName||user.username);msg($("profile-message"),"Picture ready. Save personal settings to apply.",true)}catch{msg($("profile-message"),"Could not read that image.")}};
 $("remove-pfp").onclick=()=>{pendingAvatarData=null;setAvatar($("pfp-preview"),null,user.displayName||user.username);$("pfp-file").value="";msg($("profile-message"),"Picture will be removed when you save.",true)};
 $("profile-form").onsubmit=async e=>{e.preventDefault();try{const body={displayName:$("edit-display-name").value};if(pendingAvatarData!==undefined)body.avatarData=pendingAvatarData;const d=await api("/api/profile",{method:"PATCH",body:JSON.stringify(body)});pendingAvatarData=undefined;showApp(d.user);msg($("profile-message"),"Personal settings saved.",true)}catch(e){msg($("profile-message"),e.message)}};
@@ -142,8 +142,8 @@ if ('serviceWorker' in navigator) {
       console.warn('Emnity Social offline support could not be enabled:', error);
     });
   });
-}$("push-notification-toggle").onclick=togglePushNotifications;
-async function checkPendingCall(){try{const d=await api("/api/calls/pending");if(d.invite&&!voiceRoom&&!$("incoming-call-dialog").open){incomingDmId=d.invite.dmId;incomingCallId=d.invite.id;$("incoming-call-text").textContent=(d.invite.callerName||"Your friend")+" is inviting you to a voice call.";$("incoming-call-dialog").showModal()}}catch(e){console.debug("Could not check pending calls:",e.message)}}
+}
+
 $("theme-toggle").onclick=()=>theme(document.documentElement.dataset.theme==="dark"?"light":"dark");
 $("profile-button").onclick=()=>openSettings();$("close-settings").onclick=()=>$("profile-dialog").close();
 document.querySelectorAll("[data-settings-tab]").forEach(btn=>btn.onclick=()=>switchSettingsTab(btn.dataset.settingsTab));
