@@ -43,6 +43,7 @@ await pool.query("CREATE TABLE IF NOT EXISTS push_subscriptions(endpoint TEXT PR
 await pool.query("CREATE INDEX IF NOT EXISTS push_subscriptions_user_idx ON push_subscriptions(user_id)");
 await pool.query("CREATE TABLE IF NOT EXISTS call_invites(id BIGSERIAL PRIMARY KEY,dm_id BIGINT NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,caller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,callee_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,status VARCHAR(12) NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','declined','cancelled')),created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),expires_at TIMESTAMPTZ NOT NULL)");
 await pool.query("CREATE INDEX IF NOT EXISTS call_invites_callee_pending_idx ON call_invites(callee_id,status,expires_at)");
+await pool.query("DELETE FROM call_invites WHERE expires_at<NOW()-INTERVAL '1 day'");
 console.log("Database ready.");}
 async function sendPushToUsers(userIds,payload){
  if(!pushEnabled||!Array.isArray(userIds)||!userIds.length)return;
