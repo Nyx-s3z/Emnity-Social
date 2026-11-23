@@ -396,3 +396,12 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .site-account-actions{display:flex;flex:0 0 auto;gap:5px}
 .site-account-actions .member-mod-action{width:auto;height:28px;padding:4px 9px;opacity:1}
 @media(max-width:520px){.site-account-row{align-items:flex-start}.site-account-heading{flex-direction:column}.site-account-actions .member-mod-action{padding:5px 7px}}
+
+
+/* Keep the Settings dialog its original size; scroll its contents when needed. */
+.settings-dialog{
+  max-height:88vh;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+}
