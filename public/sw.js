@@ -1,4 +1,4 @@
-const CACHE_NAME = "emnity-social-shell-v1";
+const CACHE_NAME = "emnity-social-shell-v2";
 const APP_SHELL = [
   "/",
   "/index.html",
