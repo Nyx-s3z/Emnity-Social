@@ -4,6 +4,7 @@ $("mobile-nav-toggle").addEventListener("click",()=>setMobileNav(!$("mobile-nav-
 $("mobile-nav-backdrop").addEventListener("click",()=>setMobileNav(false));
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("mobile-nav-drawer")?.classList.contains("open"))setMobileNav(false)});
 setMobileNav(false);
+window.addEventListener("resize",()=>setMobileNav(false));
 let authMode="login",user=null,servers=[],dms=[],activeServer=null,activeChannel=null,activeDm=null,lastMessageId=0,status="online",pollTimer=null,presenceLoop=null,serverLoop=null,socket=null,voiceRoom=null,localStream=null,screenStream=null,peerConnections=new Map(),remoteStreams=new Map(),incomingDmId=null,muted=false,typingTimer=null,typingActive=false,typingUsers=new Map(),iceServers=[{urls:"stun:stun.l.google.com:19302"}];
 function msg(el,text,good=false){el.textContent=text||"";el.style.color=good?"var(--success)":""}
 function showToast(message,kind="error"){const toast=document.createElement("div");toast.className="app-toast"+(kind==="success"?" app-toast-success":"");toast.textContent=message;document.body.append(toast);requestAnimationFrame(()=>toast.classList.add("visible"));setTimeout(()=>{toast.classList.remove("visible");setTimeout(()=>toast.remove(),180)},3200)}
