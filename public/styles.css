@@ -315,3 +315,67 @@ input::placeholder { color: var(--muted); opacity: .7; }
 @media(max-width:600px){#social-notifications-button{padding:7px 8px}.social-dialog{padding:16px}.social-profile-banner{height:100px}}
 
 .member[data-username]{cursor:pointer}
+
+
+/* Full-screen Discord-inspired voice room layout */
+.call-dock:not(.call-collapsed){
+  position:fixed;inset:0;z-index:900;margin:0;width:100%;height:100vh;height:100dvh;
+  max-height:100vh;max-height:100dvh;padding:0;border:0;border-radius:0;
+  display:flex;flex-direction:column;overflow:hidden;background:#1e1f22;color:#f2f3f5;
+  box-shadow:none
+}
+.call-dock:not(.call-collapsed) .call-dock-head{
+  flex:0 0 auto;min-height:76px;padding:18px 28px;border:0;border-bottom:1px solid #3a3c43;
+  background:#232428;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:16px
+}
+.call-dock:not(.call-collapsed) .call-room-label{display:flex;align-items:center;gap:14px}
+.call-dock:not(.call-collapsed) .call-room-label>div{display:grid;gap:5px}
+.call-dock:not(.call-collapsed) .call-room-label strong{font-size:16px;color:#f2f3f5}
+.call-dock:not(.call-collapsed) .call-room-label span{font-size:12px;color:#b5bac1}
+.call-dock:not(.call-collapsed) .call-live-dot{width:11px;height:11px;flex:0 0 11px;border-radius:50%;background:#23a55a;box-shadow:0 0 0 5px rgba(35,165,90,.14)}
+.call-dock:not(.call-collapsed) .call-head-actions{display:flex;align-items:center;gap:12px}
+.call-dock:not(.call-collapsed) #call-connection-state{padding:8px 12px;border:1px solid #3a3c43;border-radius:999px;background:#2b2d31;color:#b5bac1;font-size:11px}
+.call-dock:not(.call-collapsed) #call-collapse-button{padding:9px 14px;border:1px solid #4b4e57;border-radius:9px;background:#383a40;color:#f2f3f5;font-size:11px}
+.call-dock:not(.call-collapsed) .call-stage{
+  flex:1 1 auto;min-height:0;margin:0;padding:36px clamp(16px,5vw,72px);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),440px));
+  grid-auto-rows:minmax(250px, min(54vh,440px));align-content:center;justify-content:center;
+  justify-items:stretch;gap:24px;overflow:auto;background:#1e1f22
+}
+.call-dock:not(.call-collapsed) .call-participant{
+  min-height:250px;padding:28px 20px;gap:15px;border:1px solid #3b3d45;border-radius:18px;
+  background:#2b2d31;box-shadow:0 12px 34px rgba(0,0,0,.16);color:#f2f3f5
+}
+.call-dock:not(.call-collapsed) .call-participant-avatar{width:clamp(112px,16vw,156px);height:clamp(112px,16vw,156px);font-size:48px;background:#5865f2}
+.call-dock:not(.call-collapsed) .call-participant strong{font-size:15px}
+.call-dock:not(.call-collapsed) .call-participant-status{font-size:11px}
+.call-dock:not(.call-collapsed) .call-controls{
+  flex:0 0 auto;min-height:94px;padding:18px 20px 24px;border:0;border-top:1px solid #3a3c43;
+  background:#232428;display:flex;justify-content:center;align-items:center;gap:14px
+}
+.call-dock:not(.call-collapsed) .call-controls button{
+  min-width:142px;padding:14px 20px;border:1px solid #4a4d55;border-radius:12px;
+  background:#383a40;color:#f2f3f5;font-size:12px
+}
+.call-dock:not(.call-collapsed) .call-controls .leave-call{background:#da373c;border-color:#da373c;color:#fff}
+.call-dock.call-collapsed{
+  position:fixed;inset:auto 22px 22px auto;z-index:900;width:min(420px,calc(100vw - 28px));
+  height:auto;max-height:none;margin:0;padding:0;border:1px solid #4a4d55;border-radius:14px;
+  background:#232428;box-shadow:0 18px 55px rgba(0,0,0,.42);overflow:hidden
+}
+.call-dock.call-collapsed .mini-call-panel{padding:13px 14px;gap:10px}
+.call-dock.call-collapsed .mini-call-copy{min-width:0;flex:1}
+.call-dock.call-collapsed .mini-call-copy strong{color:#f2f3f5;font-size:12px}
+.call-dock.call-collapsed .mini-call-copy small{color:#b5bac1;font-size:10px}
+.call-dock.call-collapsed .mini-call-panel button{padding:8px 10px;border:1px solid #4a4d55;border-radius:8px;background:#383a40;color:#f2f3f5;font-size:10px}
+@media(max-width:700px){
+  .call-dock:not(.call-collapsed) .call-dock-head{min-height:68px;padding:14px 16px;align-items:flex-start}
+  .call-dock:not(.call-collapsed) .call-head-actions{gap:7px}
+  .call-dock:not(.call-collapsed) #call-connection-state{display:none}
+  .call-dock:not(.call-collapsed) .call-stage{grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(210px,1fr);padding:18px 14px;gap:14px}
+  .call-dock:not(.call-collapsed) .call-participant{min-height:210px}
+  .call-dock:not(.call-collapsed) .call-controls{gap:8px;padding:13px 10px 18px}
+  .call-dock:not(.call-collapsed) .call-controls button{min-width:0;flex:1;padding:13px 7px;font-size:10px}
+  .call-dock.call-collapsed{inset:auto 10px 10px 10px;width:auto}
+  .call-dock.call-collapsed .mini-call-panel{flex-wrap:wrap}
+}
