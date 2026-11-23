@@ -257,7 +257,7 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .message-form{flex-wrap:wrap;align-items:center}
 .message-form #message-input{min-width:0;flex:1}
 .visually-hidden-file{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.attach-button{width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--muted);font-size:25px;line-height:1}
+.attach-button{width:30px;height:30px;flex:0 0 30px;padding:0;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--muted);font-size:18px;line-height:1}
 .attach-button:hover{background:var(--accent-soft);color:var(--accent)}
 .attachment-preview{display:flex;flex:0 0 100%;flex-wrap:wrap;gap:7px;order:-1}
 .attachment-chip{display:flex;align-items:center;gap:9px;max-width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--muted);font-size:10px}
