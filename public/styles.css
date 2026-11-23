@@ -218,3 +218,6 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .moderation-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .danger-action{color:var(--danger)!important;border-color:color-mix(in srgb,var(--danger) 35%,var(--line))!important}
 #settings-moderation select{margin-bottom:12px}
+
+/* Server-only moderation view controls */
+.member-panel-top{display:flex;align-items:center;justify-content:space-between;gap:6px;padding-right:2px}.member-panel-top>.member-heading{flex:1}.mod-view-toggle{flex:0 0 auto;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);color:var(--muted);font-size:9px;font-weight:800;letter-spacing:0}.mod-view-toggle[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}.inline-mod-actions{display:inline-flex;align-items:center;gap:3px;margin-left:5px}.inline-mod-actions .member-mod-action{width:auto;min-width:0;height:20px;padding:2px 5px;font-size:9px;opacity:1}.message-head .inline-mod-actions{align-self:center}.member .inline-mod-actions{margin-left:auto}.member .inline-mod-actions .member-mod-action{height:22px;padding:2px 5px}.message-head{flex-wrap:wrap}
