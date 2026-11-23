@@ -26,6 +26,7 @@ function parseMessageAttachments(raw){
   if(!data.length||data.length>MAX_ATTACHMENT_SIZE)throw Error("Each file must be 8 MB or smaller.");
   total+=data.length;if(total>MAX_TOTAL_ATTACHMENT_SIZE)throw Error("All attachments together must be 16 MB or smaller.");
   const requested=String(item.type||"application/octet-stream").toLowerCase().split(";")[0];
+  if(["text/html","application/xhtml+xml","image/svg+xml","application/javascript","text/javascript","application/x-msdownload","application/x-executable","application/x-dosexec","application/x-sh","application/java-archive","application/vnd.android.package-archive"].includes(requested))throw Error("That file type is not supported.");
   let mime="application/octet-stream";
   const signatures=[["image/png",data.length>=8&&data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))],["image/jpeg",data.length>=3&&data[0]===255&&data[1]===216&&data[2]===255],["image/gif",data.length>=6&&["GIF87a","GIF89a"].includes(data.subarray(0,6).toString("ascii"))],["image/webp",data.length>=12&&data.subarray(0,4).toString("ascii")==="RIFF"&&data.subarray(8,12).toString("ascii")==="WEBP"]];
   const actual=signatures.find(x=>x[1])?.[0];
