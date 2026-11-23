@@ -121,3 +121,5 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .message-list{min-height:0;overscroll-behavior:contain}
 .member-panel{min-height:0;overscroll-behavior:contain}
 .typing-indicator{flex:0 0 auto;min-height:18px;padding:0 20px 4px;color:var(--muted);font-size:10px;font-style:italic}
+
+@media(max-width:760px){.app-shell{height:100dvh;min-height:0;grid-template-columns:58px minmax(0,1fr);grid-template-rows:minmax(180px,35vh) minmax(0,1fr);overflow:hidden}.server-rail{position:absolute;top:0;left:0;width:58px;height:35vh}.side-panel{grid-column:2;grid-row:1;height:100%;min-height:0;overflow-y:auto}.main-panel{grid-column:1/-1;grid-row:2;height:100%;min-height:0;overflow:hidden}.chat-layout{height:auto;min-height:0}}
