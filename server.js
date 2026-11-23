@@ -5,7 +5,7 @@ if(!process.env.DATABASE_URL||!process.env.SESSION_SECRET||process.env.SESSION_S
 const pool=new Pool({connectionString:process.env.DATABASE_URL});app.set("trust proxy",production?1:false);
 app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],styleSrc:["'self'"],scriptSrc:["'self'"],imgSrc:["'self'","data:"],connectSrc:["'self'"],objectSrc:["'none'"],frameAncestors:["'none'"]}}}));
 app.use(express.json({limit:"20kb"}));app.use(express.urlencoded({extended:false,limit:"20kb"}));
-const sessionMiddleware=session({store:new PgSession({pool,tableName:"emnity_sessions",createTableIfMissing:true}),name:"emnity.sid",secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,cookie:{httpOnly:true,secure:process.env.COOKIE_SECURE==="true",sameSite:"lax",maxAge:604800000}});app.use(sessionMiddleware);
+const sessionMiddleware=session({store:new PgSession({pool,tableName:"emnity_sessions",createTableIfMissing:true}),name:"emnity.sid",secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,rolling:true,proxy:production,cookie:{httpOnly:true,secure:"auto",sameSite:"lax",maxAge:604800000}});app.use(sessionMiddleware);
 app.use(express.static(path.join(__dirname,"public")));
 const authLimit=rateLimit({windowMs:900000,limit:12,standardHeaders:"draft-7",legacyHeaders:false}),writeLimit=rateLimit({windowMs:60000,limit:40,standardHeaders:"draft-7",legacyHeaders:false});
 const clean=v=>typeof v==="string"?v.trim():"",validUser=v=>/^[a-zA-Z0-9_]{3,20}$/.test(v),validPass=v=>typeof v==="string"&&v.length>=12&&v.length<=128;
