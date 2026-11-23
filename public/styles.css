@@ -400,15 +400,21 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
 
 
-/* Keep Settings at its normal size; scroll the category tabs horizontally. */
+/* Keep Settings at its normal size; make the category row genuinely horizontally scrollable. */
 .settings-tabs{
+  display:flex;
+  width:100%;
   max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  flex-wrap:nowrap;
   overflow-x:auto;
   overflow-y:hidden;
-  flex-wrap:nowrap;
   white-space:nowrap;
   -webkit-overflow-scrolling:touch;
-  scrollbar-width:thin;
+  scrollbar-width:auto;
+  overscroll-behavior-x:contain;
+  touch-action:pan-x;
 }
 .settings-tabs button{
   flex:0 0 auto;
