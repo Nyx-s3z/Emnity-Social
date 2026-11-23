@@ -2,7 +2,7 @@
 
 ## Server roles
 
-Every server creator is automatically its **Owner**. The Owner is the only person who can assign or remove server moderator roles. The Owner role cannot be granted with a command or removed from the original owner.
+Every server creator is automatically its **Owner**. The Owner is the only person who can assign or remove server moderator roles. The Owner role cannot be granted manually or removed from the original owner. The Owner can manage member roles in Settings → Server roles.
 
 In a server text channel, use:
 
@@ -56,3 +56,7 @@ Commands are processed by the server and are not posted as ordinary chat message
 ## Typing indicators
 
 When someone types in a channel or direct message, other participants see a live “is typing...” indicator. Typing events are sent only to people who can access that chat and are not stored as messages.
+
+## Settings
+
+Open the gear icon beside your profile to access Settings. My profile lets you change your display name and upload or remove a profile picture. Server roles lets the server Owner or a site administrator manage each member's server role. Site roles lets the Emnity account or another configured site administrator manage site-wide roles. The server Owner leaving permanently deletes that server and removes all memberships; this action cannot be undone.
