@@ -87,6 +87,14 @@ $("logout-button").onclick=async()=>{try{await api("/api/logout",{method:"POST",
 $("theme-toggle").onclick=()=>theme(document.documentElement.dataset.theme==="dark"?"light":"dark");
 $("profile-button").onclick=()=>openSettings();$("close-settings").onclick=()=>$("profile-dialog").close();
 document.querySelectorAll("[data-settings-tab]").forEach(btn=>btn.onclick=()=>switchSettingsTab(btn.dataset.settingsTab));
+const settingsTabs=document.querySelector(".settings-tabs");
+settingsTabs?.addEventListener("wheel",event=>{
+  if(settingsTabs.scrollWidth>settingsTabs.clientWidth&&Math.abs(event.deltaY)>Math.abs(event.deltaX)){
+    event.preventDefault();
+    settingsTabs.scrollLeft+=event.deltaY;
+  }
+},{passive:false});
+
 function switchSettingsTab(tab){if(tab==="announcements"&&!canPostSiteAnnouncements())tab="personal";document.querySelectorAll("[data-settings-tab]").forEach(b=>b.classList.toggle("active",b.dataset.settingsTab===tab));["personal","server","site","moderation","terms","announcements"].forEach(k=>$("settings-"+k).classList.toggle("hidden",k!==tab));if(tab==="server")loadSettingsServers();if(tab==="moderation")loadSiteModeration();if(tab==="site"){ $("site-role-username").focus();api("/api/site-roles").then(()=>msg($("site-role-message"),"You can manage site-wide roles.",true)).catch(e=>msg($("site-role-message"),e.message))}}
 async function openSettings(){ $("site-announcements-tab").classList.toggle("hidden",!canPostSiteAnnouncements());switchSettingsTab("personal");$("profile-dialog").showModal();loadSettingsServers()}
 let pendingAvatarData=undefined;
