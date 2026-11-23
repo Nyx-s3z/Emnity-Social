@@ -1,4 +1,4 @@
-const CACHE_NAME = "emnity-social-shell-v1";
+const CACHE_NAME = "emnity-social-shell-v2";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -66,4 +66,42 @@ self.addEventListener("fetch", event => {
       })
     );
   }
+});
+
+self.addEventListener("push", event => {
+  event.waitUntil((async () => {
+    let payload = {};
+    try { payload = event.data ? event.data.json() : {}; } catch { payload = {}; }
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const appIsVisible = windows.some(client => client.focused && client.visibilityState === "visible");
+    if (appIsVisible) return;
+    const title = typeof payload.title === "string" ? payload.title.slice(0, 80) : "Emnity Social";
+    const body = typeof payload.body === "string" ? payload.body.slice(0, 160) : "You have a new notification.";
+    const url = typeof payload.url === "string" && payload.url.startsWith("/") ? payload.url : "/";
+    const isCall = payload.type === "call";
+    await self.registration.showNotification(title, {
+      body,
+      icon: "/icons/emnity.svg",
+      badge: "/icons/emnity.svg",
+      tag: isCall ? "emnity-incoming-call" : undefined,
+      renotify: isCall,
+      data: { url, type: payload.type || "message" }
+    });
+  })());
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const rawUrl = event.notification.data && event.notification.data.url;
+  const targetUrl = new URL(typeof rawUrl === "string" && rawUrl.startsWith("/") ? rawUrl : "/", self.location.origin).href;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      if (client.url.startsWith(self.location.origin) && "focus" in client) {
+        if ("navigate" in client) await client.navigate(targetUrl);
+        return client.focus();
+      }
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+  })());
 });
