@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Emnity Social",
+  "short_name": "Emnity",
+  "description": "Your communities and conversations.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#17191f",
+  "theme_color": "#5865f2",
+  "icons": [
+    {
+      "src": "/icons/emnity.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

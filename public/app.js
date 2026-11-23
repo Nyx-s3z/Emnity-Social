@@ -85,3 +85,12 @@ const endpoint=activeDm?"/api/dms/"+activeDm+"/messages":"/api/channels/"+active
 }catch(e){alert(e.message)}finally{button.disabled=false}};
 async function boot(){theme(localStorage.getItem("emnity-social-theme")||"dark");let lastError;for(let attempt=0;attempt<3;attempt++){try{const d=await api("/api/me");if(d.user)showApp(d.user);else showAuth();return}catch(e){lastError=e;if(attempt<2)await new Promise(resolve=>setTimeout(resolve,[500,1500][attempt]));}}showAuth();msg($("auth-message"),"Could not check your saved sign-in session. Check your connection and refresh; you may still be signed in. "+(lastError?.message||""));}
 boot();
+
+// Register the Emnity Social service worker for installable PWA support.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(error => {
+      console.warn('Emnity Social offline support could not be enabled:', error);
+    });
+  });
+}
