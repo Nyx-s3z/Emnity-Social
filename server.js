@@ -29,7 +29,7 @@ function parseMessageAttachments(raw){
   let mime="application/octet-stream";
   const signatures=[["image/png",data.length>=8&&data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))],["image/jpeg",data.length>=3&&data[0]===255&&data[1]===216&&data[2]===255],["image/gif",data.length>=6&&["GIF87a","GIF89a"].includes(data.subarray(0,6).toString("ascii"))],["image/webp",data.length>=12&&data.subarray(0,4).toString("ascii")==="RIFF"&&data.subarray(8,12).toString("ascii")==="WEBP"]];
   const actual=signatures.find(x=>x[1])?.[0];
-  if(requested.startsWith("image/")){if(!actual||actual!==requested)throw Error("That image could not be verified. Use a PNG, JPG, GIF, or WebP image.");mime=actual;}
+  if(requested.startsWith("image/")){if(actual&&actual===requested)mime=actual;else if(["image/heic","image/heif","image/avif","image/tiff","image/bmp"].includes(requested))mime="application/octet-stream";else throw Error("That image could not be verified. Use a PNG, JPG, GIF, or WebP image.");}
   else if(actual)mime=actual;
   else if(requested==="application/pdf"&&data.subarray(0,5).toString("ascii")==="%PDF-")mime="application/pdf";
   return {name,mime,data,size:data.length};
