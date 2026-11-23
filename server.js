@@ -2,7 +2,7 @@ require("dotenv").config();
 const express=require("express"),session=require("express-session"),helmet=require("helmet"),rateLimit=require("express-rate-limit"),{Pool}=require("pg"),PgSession=require("connect-pg-simple")(session),crypto=require("crypto"),path=require("path");
 const app=express(),production=process.env.NODE_ENV==="production"||Boolean(process.env.RAILWAY_ENVIRONMENT),port=Number(process.env.PORT||3000);
 if(!process.env.DATABASE_URL||!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<32){console.error("DATABASE_URL and a 32+ character SESSION_SECRET are required.");process.exit(1);}
-const pool=new Pool({connectionString:process.env.DATABASE_URL});app.set("trust proxy",1);
+const pool=new Pool({connectionString:process.env.DATABASE_URL});app.set("trust proxy",production?1:false);
 app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],styleSrc:["'self'"],scriptSrc:["'self'"],imgSrc:["'self'","data:"],connectSrc:["'self'"],objectSrc:["'none'"],frameAncestors:["'none'"]}}}));
 app.use(express.json({limit:"200kb"}));app.use(express.urlencoded({extended:false,limit:"20kb"}));app.use("/api",(q,s,n)=>{s.set("Cache-Control","no-store");n();});
 const sessionMiddleware=session({store:new PgSession({pool,tableName:"emnity_sessions",createTableIfMissing:true}),name:"emnity.sid",secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,rolling:true,proxy:true,cookie:{httpOnly:true,secure:production,sameSite:"lax",maxAge:604800000,path:"/"}});app.use(sessionMiddleware);
