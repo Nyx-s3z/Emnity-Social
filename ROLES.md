@@ -24,7 +24,7 @@ Site roles appear before a person's name across the site:
 | Mod | Green |
 | Dev | Blue |
 
-Site roles are separate from server roles. Only accounts explicitly configured as site administrators can assign them.
+Site roles are separate from server roles. The built-in `Emnity` account is the site-wide Dev administrator and can assign or remove all site roles. Additional site administrators can be configured through Railway.
 
 ### Configure site administrators
 
@@ -36,9 +36,9 @@ Example:
 SITE_ADMIN_USERNAMES=yourusername,anotheradmin
 ```
 
-Do not put this list in frontend JavaScript or commit private administrator credentials. If this variable is empty, no account can assign site roles through the app.
+Do not put this list in frontend JavaScript or commit private administrator credentials. The `Emnity` account remains an administrator even if this variable is empty. Other accounts need to be listed here.
 
-A configured site administrator can use these commands in a chat:
+The `Emnity` account (and any configured site administrator) can use these commands in a chat:
 
 - `/site-role @username Sr. Mod`
 - `/site-role @username Jr. Mod`
@@ -52,3 +52,7 @@ A configured site administrator can use these commands in a chat:
 - `/leave` asks for confirmation, then leaves the current server. The original Owner cannot leave until ownership transfer is implemented.
 
 Commands are processed by the server and are not posted as ordinary chat messages. Database changes are additive and preserve existing accounts and server data.
+
+## Typing indicators
+
+When someone types in a channel or direct message, other participants see a live “is typing...” indicator. Typing events are sent only to people who can access that chat and are not stored as messages.
