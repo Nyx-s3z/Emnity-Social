@@ -1,0 +1,53 @@
+name: Emnity PR checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, feature/emnity-plus-plans-and-name-credits]
+
+jobs:
+  syntax-and-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Check JavaScript syntax
+        run: |
+          node --check server.js
+          node --check public/app.js
+          node --check public/social.js
+      - name: Check Plus UI wiring
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const html = fs.readFileSync('public/index.html', 'utf8');
+          const app = fs.readFileSync('public/app.js', 'utf8');
+          const server = fs.readFileSync('server.js', 'utf8');
+          const requiredIds = [
+            'plus-home-button', 'settings-plus', 'plus-customization-save',
+            'plus-name-color', 'plus-accent-color', 'plus-name-gradient',
+            'plus-profile-theme', 'plus-banner-style', 'plus-avatar-frame',
+            'plus-chat-theme', 'plus-bubble-style', 'plus-bubble-color',
+            'plus-decoration', 'plus-status-color', 'plus-status-style',
+            'plus-pin-style', 'plus-badge-style'
+          ];
+          for (const id of requiredIds) {
+            const count = html.split('id="' + id + '"').length - 1;
+            if (count !== 1) throw new Error(id + ': expected exactly one HTML element, found ' + count);
+          }
+          for (const id of requiredIds.filter(id => id.startsWith('plus-') && !['plus-home-button', 'settings-plus'].includes(id))) {
+            if (!app.includes(id)) throw new Error('App JavaScript does not reference ' + id);
+          }
+          for (const route of ['/api/plus/status', '/api/plus/customizations', '/api/plus/gift', '/api/account/username']) {
+            if (!server.includes(route)) throw new Error('Missing server route: ' + route);
+          }
+          if (!server.includes('emnity_plus_change_credits')) throw new Error('Missing Plus change-credit storage');
+          console.log('Plus UI IDs and expected API routes are present.');
+          NODE
