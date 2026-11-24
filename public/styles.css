@@ -641,3 +641,6 @@ html[data-plus-chat-theme="forest"] .message-own{background:#203d31}
 html[data-plus-chat-theme="lavender"] .message-own{background:#382e4e}
 html[data-plus-bubble-style="square"] .message-own{border-radius:4px!important}
 html[data-plus-bubble-style="soft"] .message-own{border-radius:16px!important}
+
+
+.plus-customization-actions{display:flex;gap:10px;align-items:center;margin-top:12px}.plus-customization-actions button{flex:1;min-width:0}@media(max-width:480px){.plus-customization-actions{flex-direction:column}.plus-customization-actions button{width:100%}}
