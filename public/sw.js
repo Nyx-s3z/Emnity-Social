@@ -1,4 +1,4 @@
-const CACHE_NAME = "emnity-social-shell-v11";
+const CACHE_NAME = "emnity-social-shell-v12";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -54,18 +54,20 @@ self.addEventListener("fetch", event => {
   }
 
   if (APP_SHELL.includes(url.pathname)) {
-    event.respondWith(
-      caches.match(request).then(cached => {
-        const fresh = fetch(request).then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-          }
-          return response;
-        });
-        return cached || fresh;
-      })
-    );
+    event.respondWith((async () => {
+      const cached = await caches.match(request);
+      try {
+        const response = await fetch(request, { cache: "no-cache" });
+        if (response.ok) {
+          const copy = response.clone();
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(request, copy);
+        }
+        return response;
+      } catch (error) {
+        return cached || Response.error();
+      }
+    })());
   }
 });
 
