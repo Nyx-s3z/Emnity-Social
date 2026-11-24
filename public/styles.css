@@ -580,3 +580,12 @@ html[data-plus-banner-style="night"] .social-profile-banner[data-plus-own-banner
 html[data-plus-active="true"][data-plus-badge-style="classic"] .social-profile-name[data-plus-own-name="true"]:after{content:" PLUS";font-size:8px;color:var(--plus-accent)}
 html[data-plus-active="true"][data-plus-badge-style="minimal"] .social-profile-name[data-plus-own-name="true"]:after{content:" ✦";font-size:10px;color:var(--plus-accent)}
 html[data-plus-active="true"][data-plus-badge-style="spark"] .social-profile-name[data-plus-own-name="true"]:after{content:" ✦ PLUS";font-size:8px;font-weight:900;color:var(--plus-accent)}
+
+html[data-plus-name-gradient="sunset"] #profile-name span:last-child,html[data-plus-name-gradient="sunset"] .message-head strong[data-plus-own-name="true"] span:last-child,html[data-plus-name-gradient="sunset"] .social-profile-name[data-plus-own-name="true"]{color:transparent!important}
+html[data-plus-name-gradient="ocean"] #profile-name span:last-child,html[data-plus-name-gradient="ocean"] .message-head strong[data-plus-own-name="true"] span:last-child,html[data-plus-name-gradient="ocean"] .social-profile-name[data-plus-own-name="true"]{color:transparent!important}
+html[data-plus-name-gradient="aurora"] #profile-name span:last-child,html[data-plus-name-gradient="aurora"] .message-head strong[data-plus-own-name="true"] span:last-child,html[data-plus-name-gradient="aurora"] .social-profile-name[data-plus-own-name="true"]{color:transparent!important}
+html[data-plus-name-gradient="candy"] #profile-name span:last-child,html[data-plus-name-gradient="candy"] .message-head strong[data-plus-own-name="true"] span:last-child,html[data-plus-name-gradient="candy"] .social-profile-name[data-plus-own-name="true"]{color:transparent!important}
+html[data-plus-profile-theme="midnight"] .social-profile-main[data-plus-own-profile="true"]{background:#171a29;border-radius:12px}
+html[data-plus-profile-theme="ocean"] .social-profile-main[data-plus-own-profile="true"]{background:#102b3a;border-radius:12px}
+html[data-plus-profile-theme="sunset"] .social-profile-main[data-plus-own-profile="true"]{background:#3b2530;border-radius:12px}
+html[data-plus-profile-theme="forest"] .social-profile-main[data-plus-own-profile="true"]{background:#183127;border-radius:12px}
