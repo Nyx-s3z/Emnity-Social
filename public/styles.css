@@ -130,6 +130,9 @@ input::placeholder { color: var(--muted); opacity: .7; }
 
 @media(max-width:760px){.app-shell{height:100dvh;min-height:0;grid-template-columns:58px minmax(0,1fr);grid-template-rows:minmax(180px,35vh) minmax(0,1fr);overflow:hidden}.server-rail{position:absolute;top:0;left:0;width:58px;height:35vh}.side-panel{grid-column:2;grid-row:1;height:100%;min-height:0;overflow-y:auto}.main-panel{grid-column:1/-1;grid-row:2;height:100%;min-height:0;overflow:hidden}.chat-layout{height:auto;min-height:0}}
 
+/* Emnity Plus customization */
+.plus-settings-card{margin:18px 0;padding:15px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(145deg,var(--accent-soft),var(--panel-2))}.plus-settings-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.plus-settings-heading h3{margin:0 0 4px}.plus-settings-heading .field-hint{margin:0}.plus-pill{padding:5px 8px;border-radius:7px;background:var(--accent);color:#fff;font-size:9px;font-weight:900;letter-spacing:.1em}.plus-color-row{display:flex;align-items:center;gap:10px}.plus-color-row input[type=color]{width:54px;height:38px;padding:3px;cursor:pointer}.plus-color-row input:disabled{opacity:.45;cursor:not-allowed}.plus-color-row span{font-size:11px;color:var(--muted)}
+
 /* Settings, profile pictures, and role management */
 .avatar-image{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
 .settings-dialog{max-height:88vh;overflow-y:auto}
