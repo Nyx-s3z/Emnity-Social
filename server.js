@@ -154,17 +154,18 @@ async function refreshPlusChangeCredits(userId){
   const row=access.rows[0];
   await client.query("INSERT INTO emnity_plus_change_credits(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING",[userId]);
   if(row&&row.site_role!=="Dev"){
-   const windows=[];
-   if(row.status==="active"&&row.subscription_started)windows.push({start:new Date(row.subscription_started),end:row.current_period_end?new Date(row.current_period_end):new Date()});
-   if(row.gift_started)windows.push({start:new Date(row.gift_started),end:row.expires_at?new Date(row.expires_at):new Date()});
+   const now=new Date(),windows=[];
+   if(row.status==="active"&&row.subscription_started&&(!row.current_period_end||new Date(row.current_period_end)>now))windows.push({start:new Date(row.subscription_started)});
+   if(row.gift_started&&(!row.expires_at||new Date(row.expires_at)>now))windows.push({start:new Date(row.gift_started)});
    if(windows.length){
+    // Only accrue while Plus is active now. Expired periods must not bridge a gap to a later gift or subscription.
     const start=new Date(Math.min(...windows.map(w=>w.start.getTime())));
-    const accrualEnd=new Date(Math.min(Date.now(),Math.max(...windows.map(w=>w.end.getTime()))));
+    const accrualEnd=now;
     const balance=(await client.query("SELECT username_credits,display_name_credits,credited_through FROM emnity_plus_change_credits WHERE user_id=$1 FOR UPDATE",[userId])).rows[0];
     let through=balance.credited_through?new Date(balance.credited_through):start;
     if(through<start)through=start;
     let cycles=0;
-    while(cycles<120){const next=new Date(through),day=next.getUTCDate();next.setUTCDate(1);next.setUTCMonth(next.getUTCMonth()+2);const lastDay=new Date(Date.UTC(next.getUTCFullYear(),next.getUTCMonth()+1,0)).getUTCDate();next.setUTCDate(Math.min(day,lastDay));if(next>accrualEnd)break;through=next;cycles++;}
+    while(cycles<120){const next=new Date(through),day=next.getUTCDate();next.setUTCDate(1);next.setUTCMonth(next.getUTCMonth()+2);const lastDay=new Date(Date.UTC(next.getUTCFullYear(),next.getUTCMonth()+1,0)).getDate();next.setUTCDate(Math.min(day,lastDay));if(next>accrualEnd)break;through=next;cycles++;}
     if(cycles)await client.query("UPDATE emnity_plus_change_credits SET username_credits=username_credits+$2,display_name_credits=display_name_credits+$3,credited_through=$4 WHERE user_id=$1",[userId,cycles,cycles*2,through]);
     else await client.query("UPDATE emnity_plus_change_credits SET credited_through=COALESCE(credited_through,$2) WHERE user_id=$1",[userId,start]);
    }
