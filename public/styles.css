@@ -519,3 +519,32 @@ html[data-plus-bubble-style="square"] .message-bubble,html[data-plus-bubble-styl
 html[data-plus-status-style="pill"] .status-dot{width:18px;height:8px;border-radius:8px}html[data-plus-status-style="glow"] .status-dot{box-shadow:0 0 9px currentColor}
 html[data-plus-pin-style="compact"] .pinned-message{padding:6px}html[data-plus-pin-style="highlight"] .pinned-message{border-color:var(--plus-accent);box-shadow:0 0 0 1px var(--plus-accent)}
 @media(max-width:650px){.plus-home-button{padding:7px 8px;font-size:10px}.plus-plan-grid,.plus-feature-grid,.plus-customizer-grid{grid-template-columns:1fr}.settings-tabs{overflow-x:auto;white-space:nowrap}.plus-hub-hero{padding:15px}}
+
+/* Apply Plus choices to the live app, not only the preview. */
+.settings-dialog{width:min(94vw,900px)}
+.plus-home-button{flex:1 1 auto;justify-content:center;min-width:120px}
+html[data-plus-name-gradient="sunset"] #profile-name,html[data-plus-name-gradient="sunset"] .message-head strong{background:linear-gradient(90deg,#ff7a59,#e94e9b);background-clip:text;color:transparent}
+html[data-plus-name-gradient="ocean"] #profile-name,html[data-plus-name-gradient="ocean"] .message-head strong{background:linear-gradient(90deg,#36c5f0,#6578ef);background-clip:text;color:transparent}
+html[data-plus-name-gradient="aurora"] #profile-name,html[data-plus-name-gradient="aurora"] .message-head strong{background:linear-gradient(90deg,#40d6a2,#6478f5);background-clip:text;color:transparent}
+html[data-plus-name-gradient="candy"] #profile-name,html[data-plus-name-gradient="candy"] .message-head strong{background:linear-gradient(90deg,#f58bd1,#8b83f7);background-clip:text;color:transparent}
+html[data-plus-name-gradient="none"] #profile-name{background:none;color:var(--text)}
+html[data-plus-avatar-frame="accent"] #profile-avatar,html[data-plus-avatar-frame="accent"] #rail-avatar,html[data-plus-avatar-frame="accent"] #pfp-preview{outline:2px solid var(--plus-accent);outline-offset:2px}
+html[data-plus-avatar-frame="gradient"] #profile-avatar,html[data-plus-avatar-frame="gradient"] #rail-avatar,html[data-plus-avatar-frame="gradient"] #pfp-preview{outline:3px solid var(--plus-accent);outline-offset:2px;box-shadow:0 0 0 2px color-mix(in srgb,var(--plus-accent) 35%,transparent)}
+html[data-plus-avatar-frame="glow"] #profile-avatar,html[data-plus-avatar-frame="glow"] #rail-avatar,html[data-plus-avatar-frame="glow"] #pfp-preview{box-shadow:0 0 15px var(--plus-accent)}
+html[data-plus-decoration="sparkles"] #profile-name:after,html[data-plus-decoration="stars"] #profile-name:after{content:" ✦";color:var(--plus-accent);font-size:.8em}
+html[data-plus-decoration="orbit"] #profile-avatar{box-shadow:0 0 0 3px color-mix(in srgb,var(--plus-accent) 45%,transparent),0 0 15px color-mix(in srgb,var(--plus-accent) 45%,transparent)}
+html[data-plus-bubble-style="square"] .message-body{border-radius:4px!important}
+html[data-plus-bubble-style="soft"] .message-body{border-radius:16px!important}
+html[data-plus-chat-theme="midnight"] .message-body,html[data-plus-chat-theme="ocean"] .message-body,html[data-plus-chat-theme="forest"] .message-body,html[data-plus-chat-theme="lavender"] .message-body{padding:8px 10px;border-radius:10px}
+html[data-plus-chat-theme="midnight"] .message-body{background:#24283a}
+html[data-plus-chat-theme="ocean"] .message-body{background:#1d3b4a}
+html[data-plus-chat-theme="forest"] .message-body{background:#203d31}
+html[data-plus-chat-theme="lavender"] .message-body{background:#382e4e}
+html[data-plus-bubble-color] .message-body{border-left:3px solid var(--plus-bubble)}
+html[data-plus-status-style="pill"] .profile-strip .status-dot{width:18px;height:8px;border-radius:8px}
+html[data-plus-status-style="glow"] .profile-strip .status-dot{box-shadow:0 0 9px var(--plus-accent)}
+html[data-plus-pin-style="compact"] .pinned-message-card{padding:6px 8px}
+html[data-plus-pin-style="highlight"] .pinned-message-card{border-color:var(--plus-accent);box-shadow:0 0 0 1px var(--plus-accent)}
+html[data-plus-badge-style="minimal"] .plus-pill{padding:3px 5px;font-size:8px}
+html[data-plus-badge-style="spark"] .plus-pill:before{content:"✦ ";color:#fff}
+@media(max-width:760px){.plus-home-button{min-width:0;padding:7px 9px;font-size:10px}.settings-dialog{width:min(96vw,900px)}}
