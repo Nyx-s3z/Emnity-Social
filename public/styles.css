@@ -622,3 +622,25 @@ html[data-plus-profile-theme="forest"] .social-profile-main[data-plus-own-profil
 @media(max-width:430px){
   .plus-home-button{min-width:116px!important;padding:7px 9px!important;font-size:10px!important}
 }
+
+
+/* Keep Plus styling on the existing message bubble instead of nesting a second bubble inside it. */
+.message-own .message-body{
+  background:transparent!important;
+  border:0!important;
+  padding:0!important;
+  border-radius:0!important;
+}
+html[data-plus-bubble-color] .message-own{
+  background:color-mix(in srgb,var(--plus-bubble) 18%,var(--panel-2));
+  border-left:3px solid var(--plus-bubble);
+}
+html[data-plus-chat-theme="midnight"] .message-own{background:#24283a}
+html[data-plus-chat-theme="ocean"] .message-own{background:#1d3b4a}
+html[data-plus-chat-theme="forest"] .message-own{background:#203d31}
+html[data-plus-chat-theme="lavender"] .message-own{background:#382e4e}
+html[data-plus-bubble-style="square"] .message-own{border-radius:4px!important}
+html[data-plus-bubble-style="soft"] .message-own{border-radius:16px!important}
+
+
+.plus-customization-actions{display:flex;gap:10px;align-items:center;margin-top:12px}.plus-customization-actions button{flex:1;min-width:0}@media(max-width:480px){.plus-customization-actions{flex-direction:column}.plus-customization-actions button{width:100%}}
