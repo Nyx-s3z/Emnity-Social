@@ -162,7 +162,7 @@ async function refreshPlusChangeCredits(userId){
     let through=balance.credited_through?new Date(balance.credited_through):start;
     if(through<start)through=start;
     let cycles=0;
-    while(cycles<120){const next=new Date(through);next.setUTCMonth(next.getUTCMonth()+2);if(next>new Date())break;through=next;cycles++;}
+    while(cycles<120){const next=new Date(through),day=next.getUTCDate();next.setUTCDate(1);next.setUTCMonth(next.getUTCMonth()+2);const lastDay=new Date(Date.UTC(next.getUTCFullYear(),next.getUTCMonth()+1,0)).getUTCDate();next.setUTCDate(Math.min(day,lastDay));if(next>new Date())break;through=next;cycles++;}
     if(cycles)await client.query("UPDATE emnity_plus_change_credits SET username_credits=username_credits+$2,display_name_credits=display_name_credits+$3,credited_through=$4 WHERE user_id=$1",[userId,cycles,cycles*2,through]);
     else await client.query("UPDATE emnity_plus_change_credits SET credited_through=COALESCE(credited_through,$2) WHERE user_id=$1",[userId,start]);
    }
