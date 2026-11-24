@@ -589,3 +589,36 @@ html[data-plus-profile-theme="midnight"] .social-profile-main[data-plus-own-prof
 html[data-plus-profile-theme="ocean"] .social-profile-main[data-plus-own-profile="true"]{background:#102b3a;border-radius:12px}
 html[data-plus-profile-theme="sunset"] .social-profile-main[data-plus-own-profile="true"]{background:#3b2530;border-radius:12px}
 html[data-plus-profile-theme="forest"] .social-profile-main[data-plus-own-profile="true"]{background:#183127;border-radius:12px}
+
+
+/* Emnity Plus settings visibility and wider topbar entry. */
+#profile-dialog.settings-dialog{
+  width:min(94vw,900px);
+  max-width:900px;
+  max-height:88vh;
+  overflow-x:hidden;
+  overflow-y:auto;
+}
+#profile-dialog .settings-section:not(.hidden){
+  display:block!important;
+  visibility:visible;
+}
+#settings-plus:not(.hidden){
+  min-width:0;
+  width:100%;
+}
+.plus-home-button{
+  flex:0 0 auto!important;
+  min-width:156px!important;
+  min-height:38px;
+  padding:9px 18px!important;
+  justify-content:center;
+  font-size:12px!important;
+}
+@media(max-width:760px){
+  #profile-dialog.settings-dialog{width:min(96vw,900px);padding:18px}
+  .plus-home-button{min-width:132px!important;padding:8px 12px!important;font-size:11px!important}
+}
+@media(max-width:430px){
+  .plus-home-button{min-width:116px!important;padding:7px 9px!important;font-size:10px!important}
+}
