@@ -548,3 +548,21 @@ html[data-plus-pin-style="highlight"] .pinned-message-card{border-color:var(--pl
 html[data-plus-badge-style="minimal"] .plus-pill{padding:3px 5px;font-size:8px}
 html[data-plus-badge-style="spark"] .plus-pill:before{content:"✦ ";color:#fff}
 @media(max-width:760px){.plus-home-button{min-width:0;padding:7px 9px;font-size:10px}.settings-dialog{width:min(96vw,900px)}}
+
+/* Additional persisted Plus appearance controls */
+html[data-plus-banner-style="gradient"] .social-profile-banner{background:linear-gradient(120deg,var(--plus-accent),#252a46)}
+html[data-plus-banner-style="aurora"] .social-profile-banner{background:linear-gradient(120deg,#38d6a2,#6678ee,#b36be8)}
+html[data-plus-banner-style="sunset"] .social-profile-banner{background:linear-gradient(120deg,#ff8a65,#d85a8b,#5b4b91)}
+html[data-plus-banner-style="night"] .social-profile-banner{background:radial-gradient(circle at 75% 20%,#6678ee 0 2px,transparent 3px),linear-gradient(120deg,#101525,#29345b)}
+html[data-plus-banner-style="gradient"] .social-profile-banner[src=""],html[data-plus-banner-style="aurora"] .social-profile-banner[src=""],html[data-plus-banner-style="sunset"] .social-profile-banner[src=""],html[data-plus-banner-style="night"] .social-profile-banner[src=""]{object-fit:cover}
+html[data-plus-bubble-color] .message-body{background:color-mix(in srgb,var(--plus-bubble) 13%,var(--panel-2));padding:8px 10px;border-radius:12px}
+html[data-plus-status-style="pill"] .status-dot{background:var(--plus-status-color)!important}
+html[data-plus-status-style="glow"] .status-dot{background:var(--plus-status-color)!important;box-shadow:0 0 10px var(--plus-status-color)!important}
+html[data-plus-status-style="classic"] .status-dot{background:var(--plus-status-color)}
+html[data-plus-badge-style="classic"] .profile-copy:after{content:"PLUS";width:max-content;margin-top:2px;padding:2px 5px;border-radius:5px;background:var(--plus-accent);color:#fff;font-size:7px;font-weight:900;letter-spacing:.1em}
+html[data-plus-badge-style="minimal"] .profile-copy:after{content:"✦";width:max-content;color:var(--plus-accent);font-size:10px}
+html[data-plus-badge-style="spark"] .profile-copy:after{content:"✦ PLUS";width:max-content;color:var(--plus-accent);font-size:8px;font-weight:900}
+html[data-plus-name-gradient="sunset"] #profile-name span:last-child,html[data-plus-name-gradient="sunset"] .message-head strong[data-plus-own-name="true"]{background:linear-gradient(90deg,#ff7a59,#e94e9b);background-clip:text;color:transparent!important}
+html[data-plus-name-gradient="ocean"] #profile-name span:last-child,html[data-plus-name-gradient="ocean"] .message-head strong[data-plus-own-name="true"]{background:linear-gradient(90deg,#36c5f0,#6578ef);background-clip:text;color:transparent!important}
+html[data-plus-name-gradient="aurora"] #profile-name span:last-child,html[data-plus-name-gradient="aurora"] .message-head strong[data-plus-own-name="true"]{background:linear-gradient(90deg,#40d6a2,#6478f5);background-clip:text;color:transparent!important}
+html[data-plus-name-gradient="candy"] #profile-name span:last-child,html[data-plus-name-gradient="candy"] .message-head strong[data-plus-own-name="true"]{background:linear-gradient(90deg,#f58bd1,#8b83f7);background-clip:text;color:transparent!important}
