@@ -1,9 +1,10 @@
-const CACHE_NAME = "emnity-social-shell-v7";
+const CACHE_NAME = "emnity-social-shell-v9";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
+  "/social.js",
   "/manifest.webmanifest",
   "/icons/emnity.svg"
 ];
